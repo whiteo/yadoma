@@ -1,12 +1,12 @@
 ## 📌 Description
 Describe what this PR does.
 
-## 🔨 Type of change
-- [ ] Bug fix
-- [ ] New feature
-- [ ] Refactor
-- [ ] Documentation
-- [ ] CI/CD
+## Type of change
+- [ ] 🚀 Feature
+- [ ] 🐞 Bug Fix
+- [ ] 📝 Documentation
+- [ ] 🔧 Chore
+- [ ] ⬆️ Dependency update
 
 ## ✅ Checklist
 - [ ] Code is formatted (`go fmt`, `goimports`, etc.)
