@@ -103,7 +103,7 @@ build: build-agent compress ## Build all components (currently only Go agent)
 # DOCKER
 # =============================================================================
 
-docker-build-agent: build-agent compress ## Build Docker image for Go agent
+docker-build-agent: ## Build Docker image for Go agent
 	@echo "$(BLUE)🐳 Building Docker image for Go agent...$(NC)"
 	docker build -f Dockerfile -t $(PROJECT_NAME)/agent:latest .
 	@echo "$(GREEN)✅ Docker image built$(NC)"
