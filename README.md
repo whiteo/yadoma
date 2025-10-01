@@ -11,9 +11,9 @@
 [![Tests](https://github.com/whiteo/yadoma/actions/workflows/test.yml/badge.svg)](https://github.com/whiteo/yadoma/actions/workflows/test.yml)
 
 
-[![Security Rating](https://sonarcloud.io/api/project_badges/measure?project=whiteo_yadoma&metric=security_rating&token=2994c76c1451733892c105b6694b54397a691daa)](https://sonarcloud.io/summary/new_code?id=whiteo_yadoma)
-[![Maintainability Rating](https://sonarcloud.io/api/project_badges/measure?project=whiteo_yadoma&metric=sqale_rating&token=2994c76c1451733892c105b6694b54397a691daa)](https://sonarcloud.io/summary/new_code?id=whiteo_yadoma)
-[![Reliability Rating](https://sonarcloud.io/api/project_badges/measure?project=whiteo_yadoma&metric=reliability_rating&token=2994c76c1451733892c105b6694b54397a691daa)](https://sonarcloud.io/summary/new_code?id=whiteo_yadoma)
+[![Security Rating](https://sonarcloud.io/api/project_badges/measure?project=whiteo_yadoma&metric=security_rating&token=2994c76c1451733892c105b6694b54397a691daa)](https://sonarcloud.io/summary/new_code?id=whiteo_yadoma2)
+[![Maintainability Rating](https://sonarcloud.io/api/project_badges/measure?project=whiteo_yadoma&metric=sqale_rating&token=2994c76c1451733892c105b6694b54397a691daa)](https://sonarcloud.io/summary/new_code?id=whiteo_yadoma2)
+[![Reliability Rating](https://sonarcloud.io/api/project_badges/measure?project=whiteo_yadoma&metric=reliability_rating&token=2994c76c1451733892c105b6694b54397a691daa)](https://sonarcloud.io/summary/new_code?id=whiteo_yadoma2)
 
 ## Overview
 
