@@ -2,26 +2,20 @@ name: Build & Release
 
 on:
   workflow_run:
-    workflows: [ "Test" ]
-    types: [ "completed" ]
-
-concurrency:
-  group: build-${{ github.event.workflow_run.id }}
-  cancel-in-progress: true
+    workflows: ["Test"]
+    types:
+      - completed
 
 permissions:
   contents: write
   packages: write
 
+concurrency:
+  group: release-${{ github.event.workflow_run.head_branch }}
+  cancel-in-progress: true
+
 jobs:
   build:
-    if: >
-      github.event.workflow_run.conclusion == 'success' &&
-      (
-        github.event.workflow_run.ref == 'refs/heads/master' ||
-        startsWith(github.event.workflow_run.ref, 'refs/tags/v')
-      )
-
     runs-on: ubuntu-latest
 
     env:
