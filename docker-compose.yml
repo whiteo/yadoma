@@ -1,0 +1,13 @@
+services:
+  yadoma-agent:
+    container_name: yadoma-agent
+    image: whiteo/yadoma-agent:latest
+    restart: always
+    build:
+      context: .
+      args:
+        DOCKER_GID: ${DOCKER_GID}
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    ports:
+      - "50051:50051"

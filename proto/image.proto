@@ -1,0 +1,96 @@
+syntax = "proto3";
+
+package image.v1;
+
+option go_package = "./;protos";
+
+message GetImagesRequest {
+  bool all = 1;
+}
+
+message GetImageResponse {
+  string id = 1;
+  repeated string repo_tags = 2;
+  int64 created = 3;
+  int64 size = 4;
+  int64 containers = 5;
+}
+
+message GetImagesResponse {
+  repeated GetImageResponse images = 1;
+}
+
+message GetImageDetailsRequest {
+  string id = 1;
+}
+
+message GetImageDetailsResponse {
+  string id = 1;
+  repeated string repo_tags = 2;
+  string created = 3;
+  string author = 4;
+  string architecture = 5;
+  string os = 6;
+  int64 size = 7;
+}
+
+message RemoveImageRequest {
+  string id = 1;
+  bool force = 2;
+  bool prune_children = 3;
+}
+
+message RemoveImageResponse {
+  repeated RemoveImageResult results = 1;
+}
+
+message RemoveImageResult {
+  string deleted = 1;
+  string untagged = 2;
+}
+
+message PullImageRequest {
+  string link = 1;
+  string registry_auth = 2;
+}
+
+message PullImageResponse {
+  bytes chunk = 1;
+}
+
+message BuildImageRequest {
+  bytes build_context = 1;
+  string dockerfile = 2;
+  string dockerfile_content = 3;
+  repeated string tags = 4;
+  bool no_cache = 5;
+  map<string, string> build_args = 6;
+  map<string, string> labels = 7;
+}
+
+message BuildImageResponse {
+  bytes chunk = 1;
+}
+
+message PruneImagesRequest {
+  string all = 1;
+}
+
+message PruneImagesResponse {
+  repeated PruneImageResult images_deleted = 1;
+  uint64 space_reclaimed = 2;
+}
+
+message PruneImageResult {
+  string deleted = 1;
+  string untagged = 2;
+}
+
+service ImageService {
+  rpc GetImages(GetImagesRequest) returns (GetImagesResponse);
+  rpc GetImageDetails(GetImageDetailsRequest) returns (GetImageDetailsResponse);
+  rpc RemoveImage(RemoveImageRequest) returns (RemoveImageResponse);
+  rpc PullImage(PullImageRequest) returns (stream PullImageResponse);
+  rpc BuildImage(BuildImageRequest) returns (stream BuildImageResponse);
+  rpc PruneImages(PruneImagesRequest) returns (PruneImagesResponse);
+}

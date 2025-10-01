@@ -1,0 +1,27 @@
+# Ignore build artifacts
+/dist/
+/agent/coverage.out
+/agent/coverage.html
+/agent/benchmark-results.txt
+
+# Ignore development environment files
+.env
+*.log
+
+# Ignore OS files
+.DS_Store
+Thumbs.db
+
+# Ignore IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Ignore temporary files
+*.tmp
+*.temp
+
+# Ignore Docker volumes
+/docker/data/
+/grafana-storage/

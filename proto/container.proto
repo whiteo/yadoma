@@ -1,0 +1,198 @@
+syntax = "proto3";
+
+package container.v1;
+
+option go_package = "./;protos";
+
+message GetContainersRequest {
+  bool all = 1;
+  int32 limit = 2;
+}
+
+message GetContainerResponse {
+  string id = 1;
+  repeated string names = 2;
+  string image = 3;
+  string state = 4;
+  string status = 5;
+  repeated string ports = 6;
+}
+
+message GetContainersResponse {
+  repeated GetContainerResponse containers = 1;
+}
+
+message GetContainerDetailsRequest {
+  string id = 1;
+}
+
+message GetContainerDetailsResponse {
+  string id = 1;
+  string name = 2;
+  string created = 3;
+  string image = 4;
+  string status = 5;
+  string state = 6;
+  repeated MountPoint mounts = 7;
+  map<string, NetworkSettings> networks = 8;
+}
+
+message MountPoint {
+  string source = 1;
+  string destination = 2;
+  bool rw = 3;
+}
+
+message NetworkSettings {
+  string network_id = 1;
+  string ip_address = 2;
+  string gateway = 3;
+}
+
+message GetContainerLogsRequest {
+  string id = 1;
+  bool follow = 2;
+}
+
+message GetContainerLogsResponse {
+  bytes chunk = 1;
+}
+
+message GetContainerStatsRequest {
+  string id = 1;
+  bool stream = 2;
+}
+
+message GetContainerStatsResponse {
+  string id = 1;
+  uint64 cpu_usage = 2;
+  uint64 mem_usage = 3;
+  uint64 mem_limit = 4;
+  uint64 net_input = 5;
+  uint64 net_output = 6;
+}
+
+message CreateContainerRequest {
+  string name = 1;
+  string image = 2;
+  repeated string cmd = 3;
+  repeated string env = 4;
+  HostConfig host_config = 5;
+  repeated string networks = 6;
+}
+
+message HostConfig {
+  map<string, PortBinding> port_bindings = 1;
+  RestartPolicy restart_policy = 2;
+  bool auto_remove = 3;
+  repeated Mount mounts = 4;
+}
+
+message PortBinding {
+  repeated PortMapping host_ports = 1;
+}
+
+message PortMapping {
+  string host_ip = 1;
+  int32 host_port = 2;
+  int32 container_port = 3;
+}
+
+message RestartPolicy {
+  string name = 1;
+  int32 maximum_retry_count = 2;
+}
+
+message Mount {
+  string source = 1;
+  string target = 2;
+  bool read_only = 3;
+}
+
+message CreateContainerResponse {
+  string id = 1;
+}
+
+message RemoveContainerRequest {
+  string id = 1;
+  bool remove_volumes = 2;
+  bool force = 3;
+}
+
+message RemoveContainerResponse {
+  bool success = 1;
+}
+
+message StartContainerRequest {
+  string id = 1;
+}
+
+message StartContainerResponse {
+  bool success = 1;
+}
+
+message StopContainerRequest {
+  string id = 1;
+}
+
+message StopContainerResponse {
+  bool success = 1;
+}
+
+message RestartContainerRequest {
+  string id = 1;
+}
+
+message RestartContainerResponse {
+  bool success = 1;
+}
+
+message PauseContainerRequest {
+  string id = 1;
+}
+
+message PauseContainerResponse {
+  bool success = 1;
+}
+
+message UnpauseContainerRequest {
+  string id = 1;
+}
+
+message UnpauseContainerResponse {
+  bool success = 1;
+}
+
+message KillContainerRequest {
+  string id = 1;
+  string signal = 2;
+}
+
+message KillContainerResponse {
+  bool success = 1;
+}
+
+message RenameContainerRequest {
+  string id = 1;
+  string name = 2;
+}
+
+message RenameContainerResponse {
+  bool success = 1;
+}
+
+service ContainerService {
+  rpc GetContainers(GetContainersRequest) returns (GetContainersResponse);
+  rpc GetContainerDetails(GetContainerDetailsRequest) returns (GetContainerDetailsResponse);
+  rpc GetContainerLogs(GetContainerLogsRequest) returns (stream GetContainerLogsResponse);
+  rpc GetContainerStats(GetContainerStatsRequest) returns (stream GetContainerStatsResponse);
+  rpc CreateContainer(CreateContainerRequest) returns (CreateContainerResponse);
+  rpc RemoveContainer(RemoveContainerRequest) returns (RemoveContainerResponse);
+  rpc StartContainer(StartContainerRequest) returns (StartContainerResponse);
+  rpc StopContainer(StopContainerRequest) returns (StopContainerResponse);
+  rpc RestartContainer(RestartContainerRequest) returns (RestartContainerResponse);
+  rpc PauseContainer(PauseContainerRequest) returns (PauseContainerResponse);
+  rpc UnpauseContainer(UnpauseContainerRequest) returns (UnpauseContainerResponse);
+  rpc KillContainer(KillContainerRequest) returns (KillContainerResponse);
+  rpc RenameContainer(RenameContainerRequest) returns (RenameContainerResponse);
+}

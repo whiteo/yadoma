@@ -1,0 +1,49 @@
+# Git
+.git
+.gitignore
+.github
+
+# Documentation
+*.md
+docs/
+
+# Build artifacts
+build/
+*.exe
+*.tar.gz
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Test files
+*_test.go
+coverage.out
+coverage.html
+
+# Development files
+Dockerfile.dev
+docker-compose.*.yml
+
+# Scripts (not needed in container)
+scripts/
+
+# Examples
+examples/
+
+# UI/Webapp (not used in agent)
+ui/
+webapp/
+
+# Monitoring configs
+docker/monitoring/
+
+# Cache
+.cache/
+tmp/
