@@ -1,11 +1,20 @@
 # Yadoma Monorepo Makefile
-.PHONY: test-agent test-webapp test-ui clean install-deps-agent install-deps-webapp install-deps-ui
+.PHONY: test-agent test-webapp test-ui clean install-deps-agent install-deps-webapp install-deps-ui tools docker-build-agent docker-push-agent clean-docker build build-agent compress generate coverage-agent test-agent
 
 # Variables
 PROJECT_NAME=yadoma
 GO_VERSION=1.25.1
 NODE_VERSION=18
 JAVA_VERSION=25
+
+# Docker image/version
+IMAGE_NAME ?= whiteo/yadoma-agent
+# Prefer explicit version (CI should pass YADOMA_AGENT_VERSION). Fallback to git describe or v0.1.0
+VERSION ?= $(or $(YADOMA_AGENT_VERSION),$(shell git describe --tags --always --dirty 2>NUL),v0.1.0)
+
+# Protobuf tool versions (pin exact versions for reproducibility)
+PROTOC_GEN_GO_VERSION ?= v1.34.2
+PROTOC_GEN_GO_GRPC_VERSION ?= v1.5.1
 
 # Colors for output
 RED=\033[0;31m
@@ -31,12 +40,10 @@ install-deps-ui: ## Install Node.js dependencies for UI (placeholder)
 	@echo "$(YELLOW)⚠️  UI (TypeScript/React) dependencies - not implemented yet$(NC)"
 	# cd ui && npm install
 
-tools: ## Install dev tools
-	@echo "$(BLUE)🔨 Installing dev tools...$(NC)"
-	go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
-	go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
-	go install github.com/swaggo/swag/cmd/swag@latest
-	go install github.com/sqlc-dev/sqlc/cmd/sqlc@latest
+tools: ## Install dev tools (pinned versions)
+	@echo "$(BLUE)🔧 Installing dev tools (pinned)...$(NC)"
+	go install google.golang.org/protobuf/cmd/protoc-gen-go@$(PROTOC_GEN_GO_VERSION)
+	go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@$(PROTOC_GEN_GO_GRPC_VERSION)
 	@echo "$(GREEN)✅ Tools installed$(NC)"
 
 install-deps: install-deps-agent tools ## Install all dependencies
@@ -55,14 +62,6 @@ coverage-agent: ## Run Go agent tests with coverage
 	@echo "$(BLUE)🧪 Running Go agent tests with coverage...$(NC)"
 	cd agent && go test -v -race -count=1 -coverprofile=coverage.txt ./...
 	@echo "$(GREEN)✅ Coverage report generated at agent/coverage.txt$(NC)"
-
-test-webapp: ## Run Java webapp tests (placeholder)
-	@echo "$(YELLOW)⚠️  Webapp (Java) tests - not implemented yet$(NC)"
-	# cd webapp && ./gradlew test || cd webapp && mvn test
-
-test-ui: ## Run TypeScript/React UI tests (placeholder)
-	@echo "$(YELLOW)⚠️  UI (TypeScript/React) tests - not implemented yet$(NC)"
-	# cd ui && npm test
 
 # =============================================================================
 # CODE GENERATION
@@ -103,18 +102,15 @@ build: build-agent compress ## Build all components (currently only Go agent)
 # DOCKER
 # =============================================================================
 
-docker-build-agent: ## Build Docker image for Go agent
-	@echo "$(BLUE)🐳 Building Docker image for Go agent...$(NC)"
-	docker build -f Dockerfile -t $(PROJECT_NAME)/agent:latest .
-	@echo "$(GREEN)✅ Docker image built$(NC)"
+docker-build-agent: ## Build Docker image for Go agent with explicit tag
+	@echo "$(BLUE)🐳 Building Docker image $(IMAGE_NAME):$(VERSION)...$(NC)"
+	docker build -f Dockerfile -t $(IMAGE_NAME):$(VERSION) --build-arg DOCKER_GID=$(DOCKER_GID) .
+	@echo "$(GREEN)✅ Docker image built: $(IMAGE_NAME):$(VERSION)$(NC)"
 
-docker-push-agent: docker-build-agent ## Push Docker image to Docker Hub
-	@echo "$(BLUE)📤 Pushing Docker image to Docker Hub...$(NC)"
-	docker tag $(PROJECT_NAME)/agent:latest $(DOCKER_USER)/$(PROJECT_NAME)-agent:latest
-	docker tag $(PROJECT_NAME)/agent:latest $(DOCKER_USER)/$(PROJECT_NAME)-agent:$(GITHUB_SHA)
-	docker push $(DOCKER_USER)/$(PROJECT_NAME)-agent:latest
-	docker push $(DOCKER_USER)/$(PROJECT_NAME)-agent:$(GITHUB_SHA)
-	@echo "$(GREEN)✅ Docker image pushed$(NC)"
+docker-push-agent: docker-build-agent ## Push Docker image with explicit tag
+	@echo "$(BLUE)📤 Pushing Docker image $(IMAGE_NAME):$(VERSION)...$(NC)"
+	docker push $(IMAGE_NAME):$(VERSION)
+	@echo "$(GREEN)✅ Docker image pushed: $(IMAGE_NAME):$(VERSION)$(NC)"
 
 # =============================================================================
 # CLEANING
@@ -123,14 +119,18 @@ docker-push-agent: docker-build-agent ## Push Docker image to Docker Hub
 clean: ## Clean build artifacts and coverage reports
 	@echo "$(BLUE)🧹 Cleaning build artifacts...$(NC)"
 	rm -rf build/
-	rm -rf agent/coverage.out agent/coverage.html
+	rm -rf agent/coverage.out agent/coverage.html agent/coverage.txt
 	# rm -rf webapp/build webapp/target
 	# rm -rf ui/build ui/dist ui/node_modules/.cache
 	@echo "$(GREEN)✅ Clean completed$(NC)"
 
-clean-docker: ## Clean Docker containers and images
-	@echo "$(BLUE)🐳 Cleaning Docker resources...$(NC)"
-	docker stop $(PROJECT_NAME)-agent || true
-	docker rm $(PROJECT_NAME)-agent || true
-	docker rmi $(PROJECT_NAME)/agent:latest || true
+clean-docker: ## Clean Docker images (by explicit tag)
+	@echo "$(BLUE)🐳 Cleaning Docker image $(IMAGE_NAME):$(VERSION)...$(NC)"
+	-docker rmi $(IMAGE_NAME):$(VERSION)
 	@echo "$(GREEN)✅ Docker cleanup completed$(NC)"
+
+# =============================================================================
+# ALL-IN-ONE COMMANDS
+# =============================================================================
+all: clean install-deps tools test-agent coverage-agent generate build compress ## Full pipeline
+	@echo "$(GREEN)🚀 All tasks completed successfully!$(NC)"

@@ -7,6 +7,6 @@ COPY build/yadoma-agent /usr/local/bin/yadoma-agent
 
 USER app
 
-EXPOSE 50051
+EXPOSE 50001
 
 ENTRYPOINT ["yadoma-agent"]

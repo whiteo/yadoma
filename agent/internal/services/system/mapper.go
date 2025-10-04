@@ -1,5 +1,17 @@
 // @author Leo Tanas (<a href="https://github.com/whiteo">github</a>)
 
+// Package system provides the agent's service layer for Docker system operations.
+// It exposes gRPC-facing handlers that validate requests, delegate to the Docker
+// client layer, map results to protobuf messages, and translate errors into gRPC
+// status codes.
+//
+// Supported operations include retrieving daemon/system information and reporting
+// aggregate disk usage across images, containers, volumes, and layer sizes.
+// Calls respect the caller's context and deadlines; streaming endpoints are not used.
+//
+// The package does not spawn goroutines on behalf of the caller and relies on
+// context cancellation for shutdown. It is intended for internal use by the
+// agent's gRPC server layer.
 package system
 
 import (

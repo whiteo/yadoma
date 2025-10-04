@@ -1,7 +1,8 @@
 services:
   yadoma-agent:
     container_name: yadoma-agent
-    image: whiteo/yadoma-agent:latest
+    # Avoid using :latest. Use an explicit version tag from env (e.g., v0.1.0)
+    image: whiteo/yadoma-agent:${YADOMA_AGENT_VERSION:-v0.1.0}
     restart: always
     build:
       context: .
@@ -10,4 +11,14 @@ services:
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
     ports:
-      - "50051:50051"
+      # In production, prefer binding to loopback or private interfaces only
+      # for example, uncomment the next line to expose only on localhost:
+      # - "127.0.0.1:50001:50001"
+      - "50001:50001"
+    networks:
+      - agent_internal
+
+networks:
+  agent_internal:
+    driver: bridge
+    internal: true  # prevent external access from other docker networks

@@ -260,7 +260,6 @@ func TestVolumeRemove(t *testing.T) {
 			name:     "successful volume removal",
 			volumeID: "test-volume-id",
 			setupMock: func(m *MockDockerClient) {
-				// В volume.go всегда передается force=true
 				m.On("VolumeRemove",
 					mock.Anything,
 					"test-volume-id",
@@ -273,7 +272,6 @@ func TestVolumeRemove(t *testing.T) {
 			name:     "error when removing volume",
 			volumeID: "volume-in-use",
 			setupMock: func(m *MockDockerClient) {
-				// В volume.go всегда передается force=true
 				m.On("VolumeRemove",
 					mock.Anything,
 					"volume-in-use",
@@ -340,7 +338,6 @@ func TestVolumesPrune(t *testing.T) {
 					VolumesDeleted: []string{"volume1", "volume2"},
 					SpaceReclaimed: 2048,
 				}
-				// В volume.go всегда используется filters.NewArgs()
 				m.On("VolumesPrune",
 					mock.Anything,
 					filters.NewArgs(),
@@ -355,7 +352,6 @@ func TestVolumesPrune(t *testing.T) {
 		{
 			name: "error when pruning volumes",
 			setupMock: func(m *MockDockerClient) {
-				// В volume.go всегда используется filters.NewArgs()
 				m.On("VolumesPrune",
 					mock.Anything,
 					filters.NewArgs(),
