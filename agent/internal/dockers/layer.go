@@ -1,5 +1,17 @@
 // @author Leo Tanas (<a href="https://github.com/whiteo">github</a>)
 
+// Package docker provides a thin, internal wrapper over the Docker Engine API client.
+// It centralizes container, image, network, volume, and system operations while keeping
+// calls close to the upstream API. Most requests are bounded with a package-level timeout
+// (ctxTimeout) derived from the caller's context to prevent indefinite waits.
+//
+// Streaming endpoints (for example, logs and stats) use the caller's context as-is.
+// Callers must read from and close returned streams. The package does not spawn
+// goroutines on behalf of the caller and relies on context cancellation for shutdown.
+//
+// Errors are returned with additional context to aid diagnostics. Configuration,
+// retries, and higher-level policies are left to callers. The package is intended
+// for internal use by services that compose these primitives.
 package docker
 
 import (
@@ -82,6 +94,12 @@ type Layer struct {
 	client ClientInterface
 }
 
+// NewLayer constructs a Layer that wraps the provided Docker Engine API client.
+// It binds the given client to enable container, image, network, volume, and
+// system operations through this package.
+// Non-streaming requests are bounded by the package-level timeout (ctxTimeout);
+// streaming endpoints use the caller's context.
+// The caller retains ownership of the client and should close it when finished.
 func NewLayer(c *client.Client) *Layer {
 	return &Layer{client: c}
 }

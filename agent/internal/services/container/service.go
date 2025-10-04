@@ -1,5 +1,13 @@
 // @author Leo Tanas (<a href="https://github.com/whiteo">github</a>)
 
+// Package container provides service-layer operations for managing Docker containers.
+// It implements gRPC-facing logic that validates requests, invokes the Docker layer,
+// maps results to protobuf messages, and returns errors as gRPC status codes.
+// Supported operations cover the container lifecycle and inspection, including create,
+// list, inspect, logs and stats streaming, start/stop/restart, kill, pause/unpause,
+// rename, and remove. Calls respect the caller's context; streaming endpoints propagate
+// cancellation and require the caller to consume and close streams. The package is
+// internal to the agent and intended to be used by higher-level gRPC servers.
 package container
 
 import (
@@ -43,10 +51,17 @@ type Service struct {
 	layer layerAPI
 }
 
+// NewContainerService constructs a new Service backed by the provided Docker layer.
+// It initializes the service dependency used to perform container operations and
+// returns an instance ready to be registered on a gRPC server via Register.
+// Callers should provide a non-nil layer to avoid runtime failures.
 func NewContainerService(layer *docker.Layer) *Service {
 	return &Service{layer: layer}
 }
 
+// Register attaches this service implementation to the provided gRPC server.
+// It wires up the generated ContainerServiceServer handlers so RPCs are exposed
+// to clients. Call during server initialization before starting to serve.
 func (s *Service) Register(rpc *grpc.Server) {
 	protos.RegisterContainerServiceServer(rpc, s)
 }

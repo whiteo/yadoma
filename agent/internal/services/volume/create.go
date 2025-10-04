@@ -1,5 +1,17 @@
 // @author Leo Tanas (<a href="https://github.com/whiteo">github</a>)
 
+// Package volume provides the agent's service layer for Docker volume management.
+// It implements gRPC-facing handlers that validate requests, delegate to the
+// Docker client layer, map results to protobuf messages, and translate errors
+// into gRPC status codes.
+//
+// Supported operations include creating volumes, listing and inspecting details,
+// removing volumes, and pruning unused volumes. Calls respect the caller's
+// context and deadlines; streaming endpoints are not used.
+//
+// The package does not spawn goroutines on behalf of the caller and relies on
+// context cancellation for shutdown. It is intended for internal use by the
+// agent's gRPC server layer.
 package volume
 
 import (
@@ -13,6 +25,12 @@ import (
 	"google.golang.org/grpc/status"
 )
 
+// CreateVolume creates a Docker volume using fields from the request.
+// It validates input (volume name is required), forwards the operation to the
+// Docker client layer with the provided context, and maps the result to the
+// protobuf response.
+// On failure, it returns a gRPC error with an appropriate status code
+// (codes.InvalidArgument for bad input, codes.Internal for client errors).
 func (s *Service) CreateVolume(
 	ctx context.Context,
 	req *protos.CreateVolumeRequest,

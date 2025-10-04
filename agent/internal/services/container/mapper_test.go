@@ -284,8 +284,8 @@ func TestMapStats(t *testing.T) {
 				CpuUsage:  2000000000,
 				MemUsage:  64000000,
 				MemLimit:  128000000,
-				NetInput:  3072, // 1024 + 2048
-				NetOutput: 1536, // 512 + 1024
+				NetInput:  3072,
+				NetOutput: 1536,
 			},
 		},
 	}

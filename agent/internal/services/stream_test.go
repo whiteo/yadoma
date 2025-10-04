@@ -67,7 +67,6 @@ func TestStreamWriter(t *testing.T) {
 }
 
 func TestStreamReader(t *testing.T) {
-	// Helper function to create successful send function with received slice
 	createSuccessfulSendFunc := func() (func([]byte) error, *[][]byte) {
 		var received [][]byte
 		return func(data []byte) error {
@@ -76,7 +75,6 @@ func TestStreamReader(t *testing.T) {
 		}, &received
 	}
 
-	// Helper function to create error send function
 	createErrorSendFunc := func() (func([]byte) error, *[][]byte) {
 		return func(data []byte) error {
 			return errors.New("send failed")
@@ -219,32 +217,45 @@ func TestStreamDecoder(t *testing.T) {
 
 			if tt.expectErr {
 				assert.Error(t, err)
-			} else {
-				assert.NoError(t, err)
-				if received != nil && tt.input != "" {
-					decoder := json.NewDecoder(strings.NewReader(tt.input))
-					expectedCount := 0
-					for {
-						var temp TestStruct
-						if err := decoder.Decode(&temp); err == io.EOF {
-							break
-						} else if err != nil {
-							break
-						}
-						expectedCount++
-					}
-
-					if expectedCount > 0 {
-						assert.Len(t, *received, expectedCount)
-
-						if len(*received) > 0 {
-							first := (*received)[0]
-							assert.NotEmpty(t, first.Name)
-						}
-					}
-				}
+				return
 			}
+
+			assert.NoError(t, err)
+			if received == nil || tt.input == "" {
+				return
+			}
+			assertReceivedTestStructs(t, received, tt.input)
 		})
+	}
+}
+
+// countTestStructObjects подсчитывает число корректных JSON-объектов TestStruct в строке.
+func countTestStructObjects(input string) int {
+	decoder := json.NewDecoder(strings.NewReader(input))
+	count := 0
+	for {
+		var temp TestStruct
+		if err := decoder.Decode(&temp); err == io.EOF {
+			break
+		} else if err != nil {
+			break
+		}
+		count++
+	}
+	return count
+}
+
+// assertReceivedTestStructs проверяет, что полученные элементы соответствуют ожидаемому количеству
+// и имеют непустые обязательные поля.
+func assertReceivedTestStructs(t *testing.T, received *[]TestStruct, input string) {
+	expectedCount := countTestStructObjects(input)
+	if expectedCount == 0 {
+		return
+	}
+	assert.Len(t, *received, expectedCount)
+	if len(*received) > 0 {
+		first := (*received)[0]
+		assert.NotEmpty(t, first.Name)
 	}
 }
 

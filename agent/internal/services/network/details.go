@@ -1,5 +1,18 @@
 // @author Leo Tanas (<a href="https://github.com/whiteo">github</a>)
 
+// Package network provides the agent's service layer for Docker network management.
+// It exposes gRPC-facing handlers that validate requests, delegate to the Docker
+// layer, map results to protobuf messages, and translate errors into gRPC status
+// codes.
+//
+// Supported operations include creating networks, listing and inspecting details,
+// connecting and disconnecting containers, removing networks, and pruning unused
+// networks. Calls respect the caller's context and deadlines; streaming endpoints
+// are not used.
+//
+// The package does not spawn goroutines on behalf of the caller and relies on
+// context cancellation for shutdown. It is intended for internal use by the
+// agent's gRPC server layer.
 package network
 
 import (
@@ -14,6 +27,11 @@ import (
 	"google.golang.org/grpc/status"
 )
 
+// GetNetworkDetails inspects a Docker network by ID and returns its metadata.
+// It validates the provided network ID, delegates to the Docker layer using the
+// incoming context, and maps the result into a protobuf response (creation time
+// formatted as RFC3339). On invalid input it returns codes.InvalidArgument; on
+// backend failure it returns a codes.Internal gRPC status with details.
 func (s *Service) GetNetworkDetails(
 	ctx context.Context,
 	req *protos.GetNetworkDetailsRequest,

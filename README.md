@@ -21,40 +21,81 @@ Yadoma is a lightweight agent for managing Docker containers via gRPC API.
 
 ## Features
 
-- **Container Management**: Create, start, stop, remove, logs, stats
-- **Image Operations**: Pull, build, list, remove, prune  
-- **Network Control**: Create, connect, disconnect, remove networks
-- **Volume Management**: Create, list, remove, prune volumes
-- **System Information**: Disk usage, system info monitoring
-
-## Architecture
-
-- **gRPC Server**: High-performance API with Protocol Buffers
-- **Docker Integration**: Direct Docker Engine API communication
-- **Modular Services**: Separate services for each Docker resource type
-- **Structured Logging**: JSON logging with zerolog
+- Container Management: create, start, stop, remove, logs, stats
+- Image Operations: pull, build, list, remove, prune
+- Network Control: create, connect, disconnect, remove networks
+- Volume Management: create, list, remove, prune volumes
+- System Information: disk usage, system info monitoring
 
 ## Quick Start
 
-```bash
-# Build the agent
-make build
+- Build the agent binary
+  - `make build`
+- Run the gRPC server locally
+  - `./build/yadoma-agent --agent-tcp-port=:50001`
+- Default gRPC port: 50001
 
-# Run the gRPC server
-./bin/yadoma-agent
+### Docker Compose
 
-# Default port: 50051
-```
+- Use explicit image tags (no latest). The compose file respects env var `YADOMA_AGENT_VERSION`.
+  - On Windows cmd.exe:
+    - `set YADOMA_AGENT_VERSION=v0.1.0`
+    - `docker compose up -d`
+- To expose only locally, bind to loopback (see commented example in docker-compose.yml).
+
+## Configuration: flags and environment
+
+- Flags (agent/cmd/main.go):
+  - `--agent-tcp-port`: string, default ":50001". gRPC listen address.
+  - `--dockers-socket`: string, default "/var/run/docker.sock". Path to Docker Engine socket inside container/host mount.
+- Environment:
+  - `YADOMA_AGENT_VERSION`: image tag used by docker-compose.yml (e.g., v0.1.0).
+  - `DOCKER_GID`: build arg passed to Dockerfile to align docker group GID inside the container.
+
+## Image versioning (no latest)
+
+- Make targets now build/push images with explicit tags:
+  - `IMAGE_NAME`: defaults to `whiteo/yadoma-agent`.
+  - `VERSION`: resolved from `YADOMA_AGENT_VERSION`, or `git describe`, or `v0.1.0` as fallback.
+  - docker build: `make docker-build-agent` → builds `IMAGE_NAME:VERSION`.
+  - docker push: `make docker-push-agent` → pushes `IMAGE_NAME:VERSION`.
+- Compose uses `whiteo/yadoma-agent:${YADOMA_AGENT_VERSION:-v0.1.0}`.
+
+## Tooling versions (protoc, plugins)
+
+- Pinned versions in Makefile for reproducible codegen:
+  - `protoc-gen-go`: `$(PROTOC_GEN_GO_VERSION)` (default v1.34.2)
+  - `protoc-gen-go-grpc`: `$(PROTOC_GEN_GO_GRPC_VERSION)` (default v1.5.1)
+- Install tools:
+  - `make tools`
+- Generate protobuf stubs:
+  - `make generate`
+
+## Security: mounting /var/run/docker.sock
+
+Mounting the host Docker socket gives the container near-root control of the host. Treat it as highly privileged.
+
+- Network segmentation:
+  - Place the agent in an internal Docker network (see `agent_internal` in docker-compose.yml) and avoid exposing it publicly.
+  - Prefer binding gRPC to 127.0.0.1 or a private interface only.
+- Access control:
+  - Limit who can reach the gRPC port (firewalls/security groups, reverse proxy mTLS if exposed).
+  - Use per-environment credentials/ACLs on the entrypoint that talks to the agent (if any).
+- Host hardening:
+  - Run the container as non-root (Dockerfile already uses an unprivileged user in the docker group).
+  - Keep Docker Engine updated; restrict who can access the host’s docker group.
+  - Consider a dedicated host/VM segment for the agent if strict isolation is required.
 
 ## Development
 
-```bash
-# Generate protobuf files
-make generate
+- Generate protobuf files:
+  - `make generate`
+- Run tests:
+  - `make test-agent`
+- Build for production:
+  - `make build`
 
-# Run tests
-make test
+## Logging
 
-# Build for production
-make build
-```
+- Structured JSON logging via zerolog to stdout (see `agent/pkg/loggers/logger.go`).
+- Timestamps are RFC3339; duration fields use milliseconds.

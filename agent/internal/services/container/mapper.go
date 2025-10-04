@@ -1,5 +1,13 @@
 // @author Leo Tanas (<a href="https://github.com/whiteo">github</a>)
 
+// Package container provides service-layer operations for managing Docker containers.
+// It implements gRPC-facing logic that validates requests, invokes the Docker layer,
+// maps results to protobuf messages, and returns errors as gRPC status codes.
+// Supported operations cover the container lifecycle and inspection, including create,
+// list, inspect, logs and stats streaming, start/stop/restart, kill, pause/unpause,
+// rename, and remove. Calls respect the caller's context; streaming endpoints propagate
+// cancellation and require the caller to consume and close streams. The package is
+// internal to the agent and intended to be used by higher-level gRPC servers.
 package container
 
 import (
@@ -79,33 +87,33 @@ func mapHostConfig(h *protos.HostConfig) *container.HostConfig {
 	}
 
 	portBindings := nat.PortMap{}
-	for _, binding := range h.PortBindings {
-		for _, m := range binding.HostPorts {
+	for _, binding := range h.GetPortBindings() {
+		for _, m := range binding.GetHostPorts() {
 			port := nat.Port(fmt.Sprintf("%d/tcp", m.ContainerPort))
 			hostBinding := nat.PortBinding{
-				HostIP:   m.HostIp,
-				HostPort: strconv.Itoa(int(m.HostPort)),
+				HostIP:   m.GetHostIp(),
+				HostPort: strconv.Itoa(int(m.GetHostPort())),
 			}
 			portBindings[port] = append(portBindings[port], hostBinding)
 		}
 	}
 
 	var mounts []mount.Mount
-	for _, m := range h.Mounts {
+	for _, m := range h.GetMounts() {
 		mounts = append(mounts, mount.Mount{
-			Source:   m.Source,
-			Target:   m.Target,
-			ReadOnly: m.ReadOnly,
+			Source:   m.GetSource(),
+			Target:   m.GetTarget(),
+			ReadOnly: m.GetReadOnly(),
 			Type:     mount.TypeBind,
 		})
 	}
 
 	return &container.HostConfig{
 		PortBindings: portBindings,
-		AutoRemove:   h.AutoRemove,
+		AutoRemove:   h.GetAutoRemove(),
 		RestartPolicy: container.RestartPolicy{
-			Name:              container.RestartPolicyMode(h.RestartPolicy.Name),
-			MaximumRetryCount: int(h.RestartPolicy.MaximumRetryCount),
+			Name:              container.RestartPolicyMode(h.GetRestartPolicy().GetName()),
+			MaximumRetryCount: int(h.GetRestartPolicy().GetMaximumRetryCount()),
 		},
 		Mounts: mounts,
 	}
