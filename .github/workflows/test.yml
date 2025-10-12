@@ -90,11 +90,14 @@ jobs:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          cd webapp && ./gradlew sonar \
-            -Dsonar.host.url=https://sonarcloud.io \
-            -Dsonar.organization=whiteo \
-            -Dsonar.projectKey=whiteo_yadoma2 \
-            -Dsonar.token=${{ secrets.SONAR_TOKEN }} \
-            -Dsonar.pullrequest.key=${{ github.event.pull_request.number }} \
-            -Dsonar.pullrequest.branch=${{ github.head_ref }} \
-            -Dsonar.pullrequest.base=${{ github.base_ref }}
+          cd webapp
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            ./gradlew sonar \
+              -Dsonar.token=${{ secrets.SONAR_TOKEN }} \
+              -Dsonar.pullrequest.key=${{ github.event.pull_request.number }} \
+              -Dsonar.pullrequest.branch=${{ github.head_ref }} \
+              -Dsonar.pullrequest.base=${{ github.base_ref }}
+          else
+            ./gradlew sonar \
+              -Dsonar.token=${{ secrets.SONAR_TOKEN }}
+          fi
