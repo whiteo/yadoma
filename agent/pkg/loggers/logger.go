@@ -1,6 +1,6 @@
 // Package loggers initializes and configures the global structured logger used across the project.
 //
-// It sets up zerolog for JSON logging — suitable for production and containerized environments.
+// It sets up zerolog for JSON logging - suitable for production and containerized environments.
 // The logger is initialized automatically on package import and writes logs to stdout.
 //
 // Example log output:

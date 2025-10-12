@@ -1,0 +1,136 @@
+name: Deploy Agent to GCP
+
+on:
+  push:
+    branches:
+      - main
+      - master
+    paths:
+      - 'agent/**'
+      - 'proto/**'
+      - '.github/workflows/deploy-agent.yml'
+
+  workflow_dispatch:
+
+env:
+  GO_VERSION: '1.25.1'
+  AGENT_BINARY: 'yadoma-agent'
+  DEPLOY_PATH: '/opt/yadoma'
+  GCP_REGION: 'europe-west1'
+  GCP_ZONE: 'europe-west1-b'
+
+jobs:
+  build-and-deploy:
+    name: Build and Deploy Agent
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+
+      - name: Install dependencies
+        working-directory: ./agent
+        run: |
+          go mod download
+          go mod verify
+
+      - name: Run tests
+        working-directory: ./agent
+        run: go test -v ./...
+
+      - name: Build agent binary
+        working-directory: ./agent
+        run: |
+          CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build \
+            -ldflags="-w -s" \
+            -o ${{ env.AGENT_BINARY }} \
+            ./cmd/main.go
+
+      - name: Verify binary
+        working-directory: ./agent
+        run: |
+          ls -lh ${{ env.AGENT_BINARY }}
+          file ${{ env.AGENT_BINARY }}
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Stop agent service
+        continue-on-error: true
+        run: |
+          gcloud compute ssh ${{ secrets.GCP_VM_INSTANCE }} \
+            --zone=${{ env.GCP_ZONE }} \
+            --command="sudo systemctl stop yadoma-agent || true" \
+            --tunnel-through-iap
+
+      - name: Create deployment directory
+        run: |
+          gcloud compute ssh ${{ secrets.GCP_VM_INSTANCE }} \
+            --zone=${{ env.GCP_ZONE }} \
+            --command="sudo mkdir -p ${{ env.DEPLOY_PATH }} && sudo mkdir -p /var/log/yadoma" \
+            --tunnel-through-iap
+
+      - name: Deploy binary to GCP VM
+        run: |
+          gcloud compute scp agent/${{ env.AGENT_BINARY }} \
+            ${{ secrets.GCP_VM_INSTANCE }}:/tmp/${{ env.AGENT_BINARY }} \
+            --zone=${{ env.GCP_ZONE }} \
+            --tunnel-through-iap
+
+      - name: Move binary to final location
+        run: |
+          gcloud compute ssh ${{ secrets.GCP_VM_INSTANCE }} \
+            --zone=${{ env.GCP_ZONE }} \
+            --command="sudo mv /tmp/${{ env.AGENT_BINARY }} ${{ env.DEPLOY_PATH }}/${{ env.AGENT_BINARY }} && sudo chmod +x ${{ env.DEPLOY_PATH }}/${{ env.AGENT_BINARY }}" \
+            --tunnel-through-iap
+
+      - name: Deploy systemd service file
+        run: |
+          gcloud compute scp yadoma-agent.service \
+            ${{ secrets.GCP_VM_INSTANCE }}:/tmp/yadoma-agent.service \
+            --zone=${{ env.GCP_ZONE }} \
+            --tunnel-through-iap
+
+      - name: Install and enable service
+        run: |
+          gcloud compute ssh ${{ secrets.GCP_VM_INSTANCE }} \
+            --zone=${{ env.GCP_ZONE }} \
+            --command="sudo mv /tmp/yadoma-agent.service /etc/systemd/system/yadoma-agent.service && sudo systemctl daemon-reload && sudo systemctl enable yadoma-agent" \
+            --tunnel-through-iap
+
+      - name: Start agent service
+        run: |
+          gcloud compute ssh ${{ secrets.GCP_VM_INSTANCE }} \
+            --zone=${{ env.GCP_ZONE }} \
+            --command="sudo systemctl start yadoma-agent" \
+            --tunnel-through-iap
+
+      - name: Verify deployment
+        run: |
+          sleep 5
+          gcloud compute ssh ${{ secrets.GCP_VM_INSTANCE }} \
+            --zone=${{ env.GCP_ZONE }} \
+            --command="sudo systemctl is-active yadoma-agent && sudo systemctl status yadoma-agent" \
+            --tunnel-through-iap
+
+      - name: Deployment summary
+        if: success()
+        run: |
+          echo "::notice::Agent successfully deployed to GCP VM: ${{ secrets.GCP_VM_INSTANCE }}"
+          echo "::notice::Service status: Active"
+          echo "::notice::Binary location: ${{ env.DEPLOY_PATH }}/${{ env.AGENT_BINARY }}"
+          echo "::notice::Zone: ${{ env.GCP_ZONE }}"

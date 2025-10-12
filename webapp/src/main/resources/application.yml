@@ -1,0 +1,31 @@
+spring:
+  application:
+    name: yadoma
+  main:
+    banner-mode: off
+  data:
+    mongodb:
+      uri: ${MONGO_URI}
+server:
+  port: 8080
+  servlet:
+    context-path: /yadoma
+springdoc:
+  api-docs:
+    enabled: true
+  swagger-ui:
+    path: /
+logging:
+  level:
+    dev:
+      whiteo:
+        yadoma: ${APP_LOG_LEVEL}
+jwt:
+  expiration:
+    time: ${TOKEN_EXPIRATION_TIME}
+  secret:
+    key: ${TOKEN_SECRET_KEY}
+app:
+  version: "@project.version@"
+grpc:
+  host: ${GRPC_HOST}

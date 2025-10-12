@@ -73,17 +73,15 @@ func (l *Layer) RemoveImage(ctx context.Context,
 }
 
 // PullImage downloads a Docker image by reference using the provided image.PullOptions.
-// It derives a context with a predefined timeout (ctxTimeout) from the incoming context
-// to bound the operation duration and returns a stream (io.ReadCloser) on success.
-// The caller must read from and close the returned stream.
+// Unlike other operations, image pulls can take several minutes for large images,
+// so this function uses the caller's context directly without adding a timeout.
+// The caller is responsible for setting appropriate deadlines.
+// Returns a stream (io.ReadCloser) on success; the caller must read from and close it.
 // On failure, it returns an error wrapped with additional context information, including the image reference.
 func (l *Layer) PullImage(ctx context.Context,
 	link string,
 	opts image.PullOptions,
 ) (io.ReadCloser, error) {
-	ctx, cancel := context.WithTimeout(ctx, ctxTimeout)
-	defer cancel()
-
 	pull, err := l.client.ImagePull(ctx, link, opts)
 	if err != nil {
 		return nil, fmt.Errorf("cannot pull image %s: %w", link, err)
@@ -92,17 +90,15 @@ func (l *Layer) PullImage(ctx context.Context,
 }
 
 // BuildImage builds a Docker image from the provided build context using the given build.ImageBuildOptions.
-// It derives a context with a predefined timeout (ctxTimeout) from the incoming context
-// to bound the operation duration and returns a build.ImageBuildResponse on success.
-// The response contains a streaming body; callers must read from and close resp.Body.
+// Unlike other operations, image builds can take several minutes depending on the Dockerfile complexity,
+// so this function uses the caller's context directly without adding a timeout.
+// The caller is responsible for setting appropriate deadlines.
+// Returns a build.ImageBuildResponse on success; callers must read from and close resp.Body.
 // On failure, it returns an error wrapped with additional context information.
 func (l *Layer) BuildImage(ctx context.Context,
 	buildCtx io.Reader,
 	opts build.ImageBuildOptions,
 ) (build.ImageBuildResponse, error) {
-	ctx, cancel := context.WithTimeout(ctx, ctxTimeout)
-	defer cancel()
-
 	resp, err := l.client.ImageBuild(ctx, buildCtx, opts)
 	if err != nil {
 		return build.ImageBuildResponse{}, fmt.Errorf("cannot build image: %w", err)

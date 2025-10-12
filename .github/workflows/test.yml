@@ -13,8 +13,9 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  test:
+  test-agent:
     runs-on: ubuntu-latest
+    name: Test Agent (Go)
 
     steps:
       - uses: actions/checkout@v5
@@ -50,3 +51,57 @@ jobs:
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
 
+  test-webapp:
+    runs-on: ubuntu-latest
+    name: Test WebApp (Java)
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v5
+        with:
+          java-version: '25'
+          distribution: 'graalvm'
+
+      - name: Cache Gradle packages
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-${{ hashFiles('webapp/**/*.gradle*', 'webapp/**/gradle-wrapper.properties') }}
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x webapp/gradlew
+
+      - name: Generate protobuf files
+        run: |
+          cd webapp
+          ./gradlew generateProto
+
+      - name: Run tests with coverage
+        run: |
+          cd webapp
+          ./gradlew test jacocoTestReport
+
+      - name: SonarCloud Analysis
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          EVENT_NAME: ${{ github.event_name }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          HEAD_REF: ${{ github.head_ref }}
+          BASE_REF: ${{ github.base_ref }}
+        run: |
+          cd webapp
+          if [ "$EVENT_NAME" = "pull_request" ]; then
+            ./gradlew sonar \
+              -Dsonar.token="$SONAR_TOKEN" \
+              -Dsonar.pullrequest.key="$PR_NUMBER" \
+              -Dsonar.pullrequest.branch="$HEAD_REF" \
+              -Dsonar.pullrequest.base="$BASE_REF"
+          else
+            ./gradlew sonar \
+              -Dsonar.token="$SONAR_TOKEN"
+          fi

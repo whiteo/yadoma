@@ -11,10 +11,13 @@
 package container
 
 import (
+	"io"
+
 	"github.com/whiteo/yadoma/internal/protos"
 	service "github.com/whiteo/yadoma/internal/services"
 
 	"github.com/docker/docker/api/types/container"
+	"github.com/docker/docker/pkg/stdcopy"
 	"github.com/rs/zerolog/log"
 
 	"google.golang.org/grpc/codes"
@@ -22,8 +25,9 @@ import (
 )
 
 // GetContainerLogs streams logs of a Docker container to the gRPC client.
-// It validates the request, constructs Docker `container.LogsOptions` (currently supports `Follow`),
+// It validates the request, constructs Docker `container.LogsOptions` (with ShowStdout and ShowStderr enabled),
 // and acquires a log reader from the Docker layer using the incoming context for cancellation.
+// Docker's multiplexed log stream (8-byte headers) is demultiplexed using stdcopy.StdCopy before streaming.
 // Log data is forwarded to the client as chunked `GetContainerLogsResponse` messages until EOF or context cancellation.
 // Returns `InvalidArgument` for an empty container ID and `Internal` for failures obtaining or streaming logs.
 func (s *Service) GetContainerLogs(
@@ -34,8 +38,16 @@ func (s *Service) GetContainerLogs(
 		return status.Error(codes.InvalidArgument, "container ID is required")
 	}
 
+	inspectJSON, err := s.layer.GetContainerDetails(stream.Context(), req.GetId())
+	if err != nil {
+		return status.Errorf(codes.Internal, "cannot inspect container: %v", err)
+	}
+
 	opts := container.LogsOptions{
-		Follow: req.GetFollow(),
+		ShowStdout: true,
+		ShowStderr: true,
+		Follow:     req.GetFollow(),
+		Timestamps: false,
 	}
 
 	logsReader, err := s.layer.GetContainerLogs(stream.Context(), req.GetId(), opts)
@@ -48,7 +60,26 @@ func (s *Service) GetContainerLogs(
 		}
 	}()
 
-	return service.StreamReader(logsReader, func(chunk []byte) error {
+	if inspectJSON.Config.Tty {
+		log.Debug().Str("container", req.GetId()).Msg("Container has TTY, streaming logs directly")
+		return service.StreamReader(logsReader, func(chunk []byte) error {
+			return stream.Send(&protos.GetContainerLogsResponse{Chunk: chunk})
+		})
+	}
+
+	log.Debug().Str("container", req.GetId()).Msg("Container has no TTY, demultiplexing logs")
+	pipeReader, pipeWriter := io.Pipe()
+	defer pipeReader.Close()
+
+	go func() {
+		defer pipeWriter.Close()
+		_, err = stdcopy.StdCopy(pipeWriter, pipeWriter, logsReader)
+		if err != nil && err != io.EOF {
+			log.Error().Err(err).Msg("error demultiplexing logs")
+		}
+	}()
+
+	return service.StreamReader(pipeReader, func(chunk []byte) error {
 		return stream.Send(&protos.GetContainerLogsResponse{Chunk: chunk})
 	})
 }

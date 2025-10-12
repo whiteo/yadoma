@@ -31,21 +31,51 @@ func (s *Service) GetContainerStats(
 	req *protos.GetContainerStatsRequest,
 	stream protos.ContainerService_GetContainerStatsServer,
 ) error {
-	if req.GetId() == "" {
+	containerID := req.GetId()
+	if containerID == "" {
 		return status.Error(codes.InvalidArgument, "container ID is required")
 	}
 
-	statsReader, err := s.layer.GetContainerStats(stream.Context(), req.GetId(), req.GetStream())
+	log.Debug().
+		Str("container", containerID).
+		Bool("stream", req.GetStream()).
+		Msg("Starting stats stream")
+
+	statsReader, err := s.layer.GetContainerStats(stream.Context(), containerID, req.GetStream())
 	if err != nil {
+		log.Error().
+			Err(err).
+			Str("container", containerID).
+			Msg("Failed to get stats reader from Docker")
 		return status.Errorf(codes.Internal, "cannot get container stats: %v", err)
 	}
 	defer func() {
 		if cErr := statsReader.Body.Close(); cErr != nil {
-			log.Error().Err(cErr).Msg("error closing stats reader")
+			log.Error().Err(cErr).Str("container", containerID).Msg("error closing stats reader")
+		} else {
+			log.Debug().Str("container", containerID).Msg("Stats reader closed")
 		}
 	}()
 
-	return service.StreamDecoder[container.StatsResponse](statsReader.Body, func(stats container.StatsResponse) error {
+	log.Debug().Str("container", containerID).Msg("Starting to decode stats stream")
+
+	err = service.StreamDecoder[container.StatsResponse](statsReader.Body, func(stats container.StatsResponse) error {
+		log.Trace().
+			Str("container", containerID).
+			Uint64("cpu", stats.CPUStats.CPUUsage.TotalUsage).
+			Uint64("mem", stats.MemoryStats.Usage).
+			Msg("Decoded stats, sending to client")
 		return stream.Send(mapStats(stats))
 	})
+
+	if err != nil {
+		log.Error().
+			Err(err).
+			Str("container", containerID).
+			Msg("Error in stats stream decoder")
+	} else {
+		log.Debug().Str("container", containerID).Msg("Stats stream completed successfully")
+	}
+
+	return err
 }

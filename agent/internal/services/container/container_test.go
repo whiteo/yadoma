@@ -104,7 +104,7 @@ func TestContainerServiceRegister(t *testing.T) {
 		for k := range s.GetServiceInfo() {
 			keys = append(keys, k)
 		}
-		t.Fatalf("ожидался container.v1.ContainerService, зарегистрированы: %v", keys)
+		t.Fatalf("expected container.v1.ContainerService, registered: %v", keys)
 	}
 }
 
@@ -466,15 +466,32 @@ func TestServiceGetContainerLogs(t *testing.T) {
 			code:      codes.InvalidArgument,
 		},
 		{
-			name: "successful logs retrieval",
+			name: "successful logs retrieval - non-TTY container",
 			req:  &protos.GetContainerLogsRequest{Id: "c1", Follow: true},
 			setup: func(ml *MockLayer, stream *mockContainerLogsStream) {
-				mockReader := &mockReadCloser{data: []byte("test log line\n")}
+				inspect := container.InspectResponse{
+					ContainerJSONBase: &container.ContainerJSONBase{
+						ID: "c1",
+					},
+					Config: &container.Config{
+						Tty: false,
+					},
+				}
+				ml.On("GetContainerDetails", mock.Anything, "c1").Return(inspect, nil)
+
+				logLine := "test log line\n"
+				header := []byte{
+					1, 0, 0, 0,
+					0, 0, 0, byte(len(logLine)),
+				}
+				multiplexedData := append(header, []byte(logLine)...)
+				mockReader := &mockReadCloser{data: multiplexedData}
+
 				ml.On("GetContainerLogs",
 					mock.Anything,
 					"c1",
 					mock.MatchedBy(func(opts container.LogsOptions) bool {
-						return opts.Follow == true
+						return opts.Follow == true && opts.ShowStdout == true && opts.ShowStderr == true
 					}),
 				).Return(mockReader, nil)
 
@@ -484,14 +501,57 @@ func TestServiceGetContainerLogs(t *testing.T) {
 			code:      codes.OK,
 		},
 		{
-			name: "layer error",
-			req:  &protos.GetContainerLogsRequest{Id: "c2", Follow: false},
+			name: "successful logs retrieval - TTY container",
+			req:  &protos.GetContainerLogsRequest{Id: "c1-tty", Follow: false},
 			setup: func(ml *MockLayer, stream *mockContainerLogsStream) {
+				inspect := container.InspectResponse{
+					ContainerJSONBase: &container.ContainerJSONBase{
+						ID: "c1-tty",
+					},
+					Config: &container.Config{
+						Tty: true,
+					},
+				}
+				ml.On("GetContainerDetails", mock.Anything, "c1-tty").Return(inspect, nil)
+
+				mockReader := &mockReadCloser{data: []byte("raw log output\n")}
 				ml.On("GetContainerLogs",
 					mock.Anything,
-					"c2",
+					"c1-tty",
+					mock.MatchedBy(func(opts container.LogsOptions) bool {
+						return opts.Follow == false && opts.ShowStdout == true && opts.ShowStderr == true
+					}),
+				).Return(mockReader, nil)
+
+				stream.On("Send", mock.Anything).Return(nil)
+			},
+			expectErr: false,
+			code:      codes.OK,
+		},
+		{
+			name: "layer error - inspect fails",
+			req:  &protos.GetContainerLogsRequest{Id: "c2", Follow: false},
+			setup: func(ml *MockLayer, stream *mockContainerLogsStream) {
+				ml.On("GetContainerDetails", mock.Anything, "c2").Return(
+					container.InspectResponse{}, errors.New("container not found"))
+			},
+			expectErr: true,
+			code:      codes.Internal,
+		},
+		{
+			name: "layer error - logs retrieval fails",
+			req:  &protos.GetContainerLogsRequest{Id: "c3", Follow: false},
+			setup: func(ml *MockLayer, stream *mockContainerLogsStream) {
+				inspect := container.InspectResponse{
+					ContainerJSONBase: &container.ContainerJSONBase{ID: "c3"},
+					Config:            &container.Config{Tty: false},
+				}
+				ml.On("GetContainerDetails", mock.Anything, "c3").Return(inspect, nil)
+				ml.On("GetContainerLogs",
 					mock.Anything,
-				).Return(nil, errors.New("container not found"))
+					"c3",
+					mock.Anything,
+				).Return(nil, errors.New("cannot get logs"))
 			},
 			expectErr: true,
 			code:      codes.Internal,

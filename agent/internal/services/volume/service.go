@@ -40,9 +40,9 @@ type Service struct {
 }
 
 // NewVolumeService constructs a new volume service backed by the provided Docker layer.
-// It performs no I/O, starts no goroutines, and simply wires the service to the lower‑level client.
+// It performs no I/O, starts no goroutines, and simply wires the service to the lower-level client.
 // The returned service can be registered on a gRPC server via Register.
-// The provided layer should be non‑nil.
+// The provided layer should be non-nil.
 func NewVolumeService(layer *docker.Layer) *Service {
 	return &Service{layer: layer}
 }

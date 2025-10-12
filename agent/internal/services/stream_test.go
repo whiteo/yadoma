@@ -229,7 +229,6 @@ func TestStreamDecoder(t *testing.T) {
 	}
 }
 
-// countTestStructObjects подсчитывает число корректных JSON-объектов TestStruct в строке.
 func countTestStructObjects(input string) int {
 	decoder := json.NewDecoder(strings.NewReader(input))
 	count := 0
@@ -245,8 +244,6 @@ func countTestStructObjects(input string) int {
 	return count
 }
 
-// assertReceivedTestStructs проверяет, что полученные элементы соответствуют ожидаемому количеству
-// и имеют непустые обязательные поля.
 func assertReceivedTestStructs(t *testing.T, received *[]TestStruct, input string) {
 	expectedCount := countTestStructObjects(input)
 	if expectedCount == 0 {
