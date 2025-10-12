@@ -17,6 +17,7 @@ Thumbs.db
 .idea/
 *.swp
 *.swo
+*.iml
 
 # Ignore temporary files
 *.tmp
@@ -25,3 +26,7 @@ Thumbs.db
 # Ignore Docker volumes
 /docker/data/
 /grafana-storage/
+
+/webapp/.gradle/
+/webapp/build/
+/webapp/out/
