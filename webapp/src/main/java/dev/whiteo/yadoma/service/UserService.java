@@ -157,7 +157,9 @@ public class UserService implements UserDetailsService {
      */
     public User validateUserAccess(String userId, String adminId) {
         User user = repository.getOrThrow(userId);
-        if (!userId.equals(adminId) && user.getRole() != Role.ADMIN) {
+        User admin = repository.getOrThrow(adminId);
+
+        if (!userId.equals(adminId) && admin.getRole() != Role.ADMIN) {
             throw new BadCredentialsException("Access denied");
         }
         return user;

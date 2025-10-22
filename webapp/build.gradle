@@ -111,6 +111,21 @@ clean {
     delete "$projectDir/build/generated"
 }
 
+sonar {
+    properties {
+        property "sonar.projectName", "Yadoma WebApp"
+        property "sonar.projectKey", "whiteo_yadoma2"
+        property "sonar.organization", "whiteo"
+        property "sonar.host.url", "https://sonarcloud.io"
+        property "sonar.sources", "src/main/java"
+        property "sonar.tests", "src/test/java"
+        property "sonar.java.binaries", "build/classes/java/main"
+        property "sonar.java.test.binaries", "build/classes/java/test"
+        property "sonar.coverage.jacoco.xmlReportPaths", "build/reports/jacoco/test/jacocoTestReport.xml"
+        property "sonar.java.coveragePlugin", "jacoco"
+    }
+}
+
 protobuf {
     protoc {
         artifact = "com.google.protobuf:protoc:${protobufVersion}"
@@ -146,20 +161,5 @@ sourceSets {
         java {
             srcDirs += "$projectDir/build/generated/source/proto/main/java"
         }
-    }
-}
-
-sonar {
-    properties {
-        property "sonar.projectName", "Yadoma WebApp"
-        property "sonar.projectKey", "whiteo_yadoma2"
-        property "sonar.organization", "whiteo"
-        property "sonar.host.url", "https://sonarcloud.io"
-        property "sonar.sources", "src/main/java"
-        property "sonar.tests", "src/test/java"
-        property "sonar.java.binaries", "build/classes/java/main"
-        property "sonar.java.test.binaries", "build/classes/java/test"
-        property "sonar.coverage.jacoco.xmlReportPaths", "build/reports/jacoco/test/jacocoTestReport.xml"
-        property "sonar.java.coveragePlugin", "jacoco"
     }
 }

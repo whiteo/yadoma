@@ -30,3 +30,6 @@ Thumbs.db
 /webapp/.gradle/
 /webapp/build/
 /webapp/out/
+
+/ui/node_modules/
+/ui/package-lock.json

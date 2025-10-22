@@ -5,7 +5,7 @@ spring:
     banner-mode: off
   data:
     mongodb:
-      uri: ${MONGO_URI}
+      uri: mongodb+srv://doctrinefour_db_user:EGlZEIIG1SgXL22z@cluster0.2blb24a.mongodb.net/yadoma?retryWrites=true&w=majority
 server:
   port: 8080
   servlet:
@@ -19,12 +19,12 @@ logging:
   level:
     dev:
       whiteo:
-        yadoma: ${APP_LOG_LEVEL}
+        yadoma: DEBUG
 jwt:
   expiration:
-    time: ${TOKEN_EXPIRATION_TIME}
+    time: 720000
   secret:
-    key: ${TOKEN_SECRET_KEY}
+    key: 1234567890ASDFGHJKLZXCVBNMASD123qwe1!!!!!!
 app:
   version: "@project.version@"
 grpc:
