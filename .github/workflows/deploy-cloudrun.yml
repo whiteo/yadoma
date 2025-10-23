@@ -13,10 +13,8 @@ on:
   workflow_dispatch:
 
 env:
-  GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
   GCP_REGION: europe-west1
   SERVICE_NAME: yadoma-webapp
-  IMAGE_NAME: gcr.io/${{ secrets.GCP_PROJECT_ID }}/yadoma-webapp
   NODE_VERSION: '18'
   JAVA_VERSION: '25'
 
@@ -140,6 +138,7 @@ jobs:
           file webapp/build/libs/yadoma.jar
 
       - name: Authenticate to Google Cloud
+        id: auth
         uses: google-github-actions/auth@v2
         with:
           credentials_json: ${{ secrets.GCP_SA_KEY }}
@@ -147,30 +146,40 @@ jobs:
       - name: Set up Cloud SDK
         uses: google-github-actions/setup-gcloud@v2
 
+      - name: Get GCP Project ID
+        id: get-project
+        run: |
+          PROJECT_ID=$(gcloud config get-value project)
+          echo "project_id=$PROJECT_ID" >> $GITHUB_OUTPUT
+          echo "Using GCP Project ID: $PROJECT_ID"
+
       - name: Configure Docker to use gcloud as credential helper
         run: gcloud auth configure-docker gcr.io
 
       - name: Build Docker image
         run: |
           echo "::group::Building Docker image"
+          IMAGE_NAME="gcr.io/${{ steps.get-project.outputs.project_id }}/yadoma-webapp"
           docker build -f Dockerfile.webapp \
-            -t ${{ env.IMAGE_NAME }}:${{ github.sha }} \
-            -t ${{ env.IMAGE_NAME }}:latest \
+            -t ${IMAGE_NAME}:${{ github.sha }} \
+            -t ${IMAGE_NAME}:latest \
             .
           echo "::endgroup::"
 
       - name: Push Docker image to GCR
         run: |
           echo "::group::Pushing to Google Container Registry"
-          docker push ${{ env.IMAGE_NAME }}:${{ github.sha }}
-          docker push ${{ env.IMAGE_NAME }}:latest
+          IMAGE_NAME="gcr.io/${{ steps.get-project.outputs.project_id }}/yadoma-webapp"
+          docker push ${IMAGE_NAME}:${{ github.sha }}
+          docker push ${IMAGE_NAME}:latest
           echo "::endgroup::"
 
       - name: Deploy to Cloud Run
         run: |
           echo "::group::Deploying to Cloud Run"
+          IMAGE_NAME="gcr.io/${{ steps.get-project.outputs.project_id }}/yadoma-webapp"
           gcloud run deploy ${{ env.SERVICE_NAME }} \
-            --image=${{ env.IMAGE_NAME }}:${{ github.sha }} \
+            --image=${IMAGE_NAME}:${{ github.sha }} \
             --region=${{ env.GCP_REGION }} \
             --platform=managed \
             --allow-unauthenticated \
