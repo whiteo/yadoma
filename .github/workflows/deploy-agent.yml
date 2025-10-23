@@ -37,29 +37,44 @@ jobs:
         with:
           go-version: ${{ env.GO_VERSION }}
 
-      - name: Install dependencies
-        working-directory: ./agent
-        run: |
-          go mod download
-          go mod verify
+      - name: Setup protoc
+        uses: arduino/setup-protoc@v3
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Run tests
-        working-directory: ./agent
-        run: go test -v ./...
+      - name: Cache Go
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/go-build
+            ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+
+      - name: Install dependencies
+        run: make install-deps
+
+      - name: Generate protobuf files
+        run: make generate
+
+      - name: Run tests with coverage
+        run: make coverage-agent
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: ./agent/coverage.txt
+          flags: agent
+          name: agent-coverage
+          fail_ci_if_error: false
 
       - name: Build agent binary
-        working-directory: ./agent
-        run: |
-          CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build \
-            -ldflags="-w -s" \
-            -o ${{ env.AGENT_BINARY }} \
-            ./cmd/main.go
+        run: make build-agent
 
       - name: Verify binary
-        working-directory: ./agent
         run: |
-          ls -lh ${{ env.AGENT_BINARY }}
-          file ${{ env.AGENT_BINARY }}
+          ls -lh build/${{ env.AGENT_BINARY }}
+          file build/${{ env.AGENT_BINARY }}
 
       - name: Authenticate to Google Cloud
         uses: google-github-actions/auth@v2
@@ -86,7 +101,7 @@ jobs:
 
       - name: Deploy binary to GCP VM
         run: |
-          gcloud compute scp agent/${{ env.AGENT_BINARY }} \
+          gcloud compute scp build/${{ env.AGENT_BINARY }} \
             ${{ secrets.GCP_VM_INSTANCE }}:/tmp/${{ env.AGENT_BINARY }} \
             --zone=${{ env.GCP_ZONE }} \
             --tunnel-through-iap
@@ -100,7 +115,7 @@ jobs:
 
       - name: Deploy systemd service file
         run: |
-          gcloud compute scp yadoma-agent.service \
+          gcloud compute scp ./yadoma-agent.service \
             ${{ secrets.GCP_VM_INSTANCE }}:/tmp/yadoma-agent.service \
             --zone=${{ env.GCP_ZONE }} \
             --tunnel-through-iap
