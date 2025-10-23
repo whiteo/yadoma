@@ -1,0 +1,218 @@
+name: Deploy WebApp & UI to GCP
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'webapp/**'
+      - 'ui/**'
+      - 'proto/**'
+      - '.github/workflows/deploy-cloudrun.yml'
+
+  workflow_dispatch:
+
+env:
+  GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+  GCP_REGION: europe-west1
+  SERVICE_NAME: yadoma-webapp
+  IMAGE_NAME: gcr.io/${{ secrets.GCP_PROJECT_ID }}/yadoma-webapp
+  NODE_VERSION: '18'
+  JAVA_VERSION: '25'
+
+jobs:
+  test-build-deploy:
+    name: Test, Build & Deploy to Cloud Run
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up JDK ${{ env.JAVA_VERSION }}
+        uses: actions/setup-java@v5
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: 'graalvm'
+
+      - name: Setup Node.js ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: ui/package-lock.json
+
+      - name: Setup protoc
+        uses: arduino/setup-protoc@v3
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Cache Gradle packages
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-${{ hashFiles('webapp/**/*.gradle*', 'webapp/**/gradle-wrapper.properties') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-
+
+      - name: Cache SonarCloud packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.sonar/cache
+          key: ${{ runner.os }}-sonar
+          restore-keys: ${{ runner.os }}-sonar
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x webapp/gradlew
+
+      - name: Run webapp tests with coverage
+        run: |
+          echo "::group::Running webapp tests"
+          cd webapp
+          ./gradlew test jacocoTestReport --no-daemon
+          echo "::endgroup::"
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: ./webapp/build/reports/jacoco/test/jacocoTestReport.xml
+          flags: webapp
+          name: webapp-coverage
+          fail_ci_if_error: false
+
+      - name: SonarCloud Analysis
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "::group::SonarCloud Analysis"
+          cd webapp
+          ./gradlew sonar \
+            -Dsonar.token="$SONAR_TOKEN" \
+            --no-daemon
+          echo "::endgroup::"
+
+      - name: Generate protobuf files
+        run: |
+          echo "::group::Generating protobuf files"
+          cd webapp
+          ./gradlew generateProto --no-daemon
+          echo "::endgroup::"
+
+      - name: Install UI dependencies
+        run: |
+          echo "::group::Installing UI dependencies"
+          cd ui
+          npm ci
+          echo "::endgroup::"
+
+      - name: Build UI (React/Vite)
+        run: |
+          echo "::group::Building UI"
+          cd ui
+          npm run build
+          echo "::endgroup::"
+
+      - name: Verify UI build output
+        run: |
+          echo "UI build artifacts:"
+          ls -lah webapp/src/main/resources/static/
+
+      - name: Build Java backend with embedded UI
+        run: |
+          echo "::group::Building Java backend"
+          cd webapp
+          # Skip UI build tasks since we already built it
+          ./gradlew bootJar -x installUI -x buildUI --no-daemon
+          echo "::endgroup::"
+
+      - name: Verify backend build
+        run: |
+          echo "Built JAR:"
+          ls -lh webapp/build/libs/
+          file webapp/build/libs/yadoma.jar
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Configure Docker to use gcloud as credential helper
+        run: gcloud auth configure-docker gcr.io
+
+      - name: Build Docker image
+        run: |
+          echo "::group::Building Docker image"
+          docker build -f Dockerfile.webapp \
+            -t ${{ env.IMAGE_NAME }}:${{ github.sha }} \
+            -t ${{ env.IMAGE_NAME }}:latest \
+            .
+          echo "::endgroup::"
+
+      - name: Push Docker image to GCR
+        run: |
+          echo "::group::Pushing to Google Container Registry"
+          docker push ${{ env.IMAGE_NAME }}:${{ github.sha }}
+          docker push ${{ env.IMAGE_NAME }}:latest
+          echo "::endgroup::"
+
+      - name: Deploy to Cloud Run
+        run: |
+          echo "::group::Deploying to Cloud Run"
+          gcloud run deploy ${{ env.SERVICE_NAME }} \
+            --image=${{ env.IMAGE_NAME }}:${{ github.sha }} \
+            --region=${{ env.GCP_REGION }} \
+            --platform=managed \
+            --allow-unauthenticated \
+            --port=8080 \
+            --memory=1Gi \
+            --cpu=1 \
+            --min-instances=0 \
+            --max-instances=10 \
+            --timeout=60s \
+            --concurrency=80 \
+            --set-env-vars="MONGO_URI=${{ secrets.MONGO_URI }},APP_LOG_LEVEL=info,TOKEN_EXPIRATION_TIME=${{ secrets.TOKEN_EXPIRATION_TIME }},TOKEN_SECRET_KEY=${{ secrets.TOKEN_SECRET_KEY }},GRPC_HOST=${{ secrets.GRPC_HOST }}"
+          echo "::endgroup::"
+
+      - name: Get Cloud Run service URL
+        id: get-url
+        run: |
+          SERVICE_URL=$(gcloud run services describe ${{ env.SERVICE_NAME }} \
+            --region=${{ env.GCP_REGION }} \
+            --format='value(status.url)')
+          echo "service_url=$SERVICE_URL" >> $GITHUB_OUTPUT
+          echo "::notice::Service deployed at: $SERVICE_URL"
+
+      - name: Wait for service to be ready
+        run: sleep 15
+
+      - name: Verify deployment health
+        run: |
+          echo "::group::Health check"
+          curl -f ${{ steps.get-url.outputs.service_url }}/actuator/health || exit 1
+          echo "✓ Health check passed!"
+          echo "::endgroup::"
+
+      - name: Test UI endpoint
+        run: |
+          echo "::group::UI accessibility check"
+          HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" ${{ steps.get-url.outputs.service_url }}/)
+          if [ "$HTTP_STATUS" -eq 200 ]; then
+            echo "✓ UI is accessible (HTTP $HTTP_STATUS)"
+          else
+            echo "✗ UI returned HTTP $HTTP_STATUS"
+            exit 1
+          fi
+          echo "::endgroup::"

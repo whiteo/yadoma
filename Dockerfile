@@ -1,12 +1,39 @@
-FROM alpine:3.22
+FROM gradle:8.12-jdk25 AS builder
 
-ARG DOCKER_GID=999
-RUN addgroup -g $DOCKER_GID docker && adduser -D -H -s /sbin/nologin -G docker app
+WORKDIR /app
 
-COPY build/yadoma-agent /usr/local/bin/yadoma-agent
+COPY proto /app/proto
 
-USER app
+COPY ui /app/ui
 
-EXPOSE 50001
+RUN apt-get update && \
+    apt-get install -y curl && \
+    curl -fsSL https://deb.nodesource.com/setup_18.x | bash - && \
+    apt-get install -y nodejs && \
+    rm -rf /var/lib/apt/lists/*
 
-ENTRYPOINT ["yadoma-agent"]
+COPY webapp /app/webapp
+
+WORKDIR /app/webapp
+RUN gradle build -x test --no-daemon
+
+FROM eclipse-temurin:25-jre-alpine
+
+WORKDIR /app
+
+RUN addgroup -S yadoma && adduser -S yadoma -G yadoma
+
+COPY --from=builder /app/webapp/build/libs/yadoma.jar /app/yadoma.jar
+
+RUN chown -R yadoma:yadoma /app
+
+USER yadoma
+
+EXPOSE 8080
+
+ENV JAVA_OPTS="-XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0 -XX:+UseG1GC"
+
+HEALTHCHECK --interval=30s --timeout=3s --start-period=40s --retries=3 \
+  CMD wget --no-verbose --tries=1 --spider http://localhost:8080/actuator/health || exit 1
+
+ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS -jar /app/yadoma.jar"]

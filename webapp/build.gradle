@@ -51,6 +51,7 @@ dependencies {
     implementation "org.springframework.boot:spring-boot-starter-data-mongodb"
     implementation "org.springframework.boot:spring-boot-starter-validation"
     implementation "org.springframework.boot:spring-boot-starter-security"
+    implementation "org.springframework.boot:spring-boot-starter-actuator"
     testImplementation "org.springframework.boot:spring-boot-starter-test"
 
     // === FastJSON ===
@@ -102,6 +103,41 @@ jacocoTestReport {
         html.required = true
     }
 }
+
+task buildUI(type: Exec) {
+    description = 'Build the React UI using npm'
+    workingDir '../ui'
+
+    if (System.getProperty('os.name').toLowerCase().contains('windows')) {
+        commandLine 'cmd', '/c', 'npm run build'
+    } else {
+        commandLine 'sh', '-c', 'npm run build'
+    }
+
+    inputs.dir('../ui/src')
+    inputs.file('../ui/package.json')
+    inputs.file('../ui/vite.config.js')
+    outputs.dir('src/main/resources/static')
+}
+
+task installUI(type: Exec) {
+    description = 'Install UI dependencies'
+    workingDir '../ui'
+
+    if (System.getProperty('os.name').toLowerCase().contains('windows')) {
+        commandLine 'cmd', '/c', 'npm install'
+    } else {
+        commandLine 'sh', '-c', 'npm install'
+    }
+
+    inputs.file('../ui/package.json')
+    inputs.file('../ui/package-lock.json')
+    outputs.dir('../ui/node_modules')
+}
+
+processResources.dependsOn buildUI
+
+buildUI.dependsOn installUI
 
 bootJar {
     archiveFileName = 'yadoma.jar'

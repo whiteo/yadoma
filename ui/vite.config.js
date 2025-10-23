@@ -3,10 +3,20 @@ import react from '@vitejs/plugin-react'
 
 export default defineConfig({
   plugins: [react()],
+  base: '/',
+  build: {
+    outDir: '../webapp/src/main/resources/static',
+    emptyOutDir: true
+  },
   server: {
     port: 3000,
     proxy: {
-      '/yadoma': {
+      '/api': {
+        target: 'http://localhost:8080',
+        changeOrigin: true,
+        ws: true
+      },
+      '/ws': {
         target: 'http://localhost:8080',
         changeOrigin: true,
         ws: true
