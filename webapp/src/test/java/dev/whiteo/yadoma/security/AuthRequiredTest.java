@@ -10,9 +10,6 @@ import java.lang.annotation.Target;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-/**
- * Test class for AuthRequired annotation.
- */
 class AuthRequiredTest {
 
     @AuthRequired(value = AuthInterceptor.class)

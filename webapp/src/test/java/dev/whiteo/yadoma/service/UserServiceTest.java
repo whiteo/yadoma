@@ -67,7 +67,7 @@ class UserServiceTest {
 
         loginRequest = new UserLoginRequest("test@example.com", "password");
 
-        userResponse = new UserResponse("test@example.com", Role.USER);
+        userResponse = new UserResponse("userId","test@example.com", Role.USER);
 
         tokenResponse = new TokenResponse("token");
     }

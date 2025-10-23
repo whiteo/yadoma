@@ -40,7 +40,7 @@ class ContainerMapperTest {
     void toResponseDTO_ShouldMapGetContainerDetailsResponse() {
         Container.GetContainerDetailsResponse detailsResponse = Container.GetContainerDetailsResponse.newBuilder()
                 .setId("container123")
-                .setName("test-container")
+                .setName("/test-container")
                 .setImage("nginx:latest")
                 .setState("running")
                 .setStatus("Up 5 minutes")
@@ -54,6 +54,7 @@ class ContainerMapperTest {
         assertEquals("test-container", result.name());
         assertEquals("running", result.state());
         assertEquals("Up 5 minutes", result.status());
+        assertNotNull(result.createdAt());
     }
 
     @Test
