@@ -87,13 +87,20 @@ compress: ## Compress binary with UPX
 	upx --best --lzma ./build/yadoma-agent
 	@echo "$(GREEN)✅ Binary compressed$(NC)"
 
-build-webapp: ## Build Java webapp (placeholder)
-	@echo "$(YELLOW)⚠️  Webapp (Java) build - not implemented yet$(NC)"
-	# cd webapp && ./gradlew build || cd webapp && mvn package
+build-ui: ## Build TypeScript/React UI
+	@echo "$(BLUE)🎨 Building UI (React/Vite)...$(NC)"
+	cd ui && npm install && npm run build
+	@echo "$(GREEN)✅ UI built successfully$(NC)"
 
-build-ui: ## Build TypeScript/React UI (placeholder)
-	@echo "$(YELLOW)⚠️  UI (TypeScript/React) build - not implemented yet$(NC)"
-	# cd ui && npm run build
+build-webapp: ## Build Java webapp with embedded UI
+	@echo "$(BLUE)☕ Building Java webapp...$(NC)"
+	cd webapp && chmod +x gradlew && ./gradlew clean build -x test
+	@echo "$(GREEN)✅ Webapp built successfully$(NC)"
+
+test-webapp: ## Run webapp tests with coverage
+	@echo "$(BLUE)🧪 Running webapp tests...$(NC)"
+	cd webapp && chmod +x gradlew && ./gradlew test jacocoTestReport
+	@echo "$(GREEN)✅ Webapp tests passed$(NC)"
 
 build: build-agent compress ## Build all components (currently only Go agent)
 	@echo "$(GREEN)✅ All builds completed$(NC)"
@@ -120,8 +127,8 @@ clean: ## Clean build artifacts and coverage reports
 	@echo "$(BLUE)🧹 Cleaning build artifacts...$(NC)"
 	rm -rf build/
 	rm -rf agent/coverage.out agent/coverage.html agent/coverage.txt
-	# rm -rf webapp/build webapp/target
-	# rm -rf ui/build ui/dist ui/node_modules/.cache
+	rm -rf webapp/build webapp/src/main/resources/static/*
+	rm -rf ui/dist
 	@echo "$(GREEN)✅ Clean completed$(NC)"
 
 clean-docker: ## Clean Docker images (by explicit tag)

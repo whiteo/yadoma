@@ -1,15 +1,12 @@
-name: Test
+name: Test PR
 
 on:
   pull_request:
     branches:
       - main
-  push:
-    tags:
-      - 'v*.*.*'
 
 concurrency:
-  group: test-${{ github.ref }}
+  group: test-pr-${{ github.event.pull_request.number }}
   cancel-in-progress: true
 
 jobs:
@@ -18,24 +15,29 @@ jobs:
     name: Test Agent (Go)
 
     steps:
-      - uses: actions/checkout@v5
+      - name: Checkout code
+        uses: actions/checkout@v5
 
-      - uses: actions/setup-go@v6
+      - name: Set up Go
+        uses: actions/setup-go@v6
         with:
           go-version: '1.25.x'
           check-latest: true
 
-      - uses: arduino/setup-protoc@v3
+      - name: Setup protoc
+        uses: arduino/setup-protoc@v3
         with:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Cache Go
+      - name: Cache Go modules
         uses: actions/cache@v4
         with:
           path: |
             ~/.cache/go-build
             ~/go/pkg/mod
           key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
 
       - name: Install dependencies
         run: make install-deps
@@ -43,26 +45,29 @@ jobs:
       - name: Generate protobuf files
         run: make generate
 
-      - name: Run tests with coverage
-        run: make coverage-agent
-
-      - name: Upload coverage reports to Codecov
-        uses: codecov/codecov-action@v5
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }}
+      - name: Run tests
+        run: |
+          cd agent
+          go test -v -race -count=1 ./...
 
   test-webapp:
     runs-on: ubuntu-latest
     name: Test WebApp (Java)
 
     steps:
-      - uses: actions/checkout@v5
+      - name: Checkout code
+        uses: actions/checkout@v5
 
-      - name: Set up JDK 21
+      - name: Set up JDK 25
         uses: actions/setup-java@v5
         with:
           java-version: '25'
           distribution: 'graalvm'
+
+      - name: Setup protoc
+        uses: arduino/setup-protoc@v3
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Cache Gradle packages
         uses: actions/cache@v4
@@ -71,6 +76,8 @@ jobs:
             ~/.gradle/caches
             ~/.gradle/wrapper
           key: ${{ runner.os }}-gradle-${{ hashFiles('webapp/**/*.gradle*', 'webapp/**/gradle-wrapper.properties') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-
 
       - name: Grant execute permission for gradlew
         run: chmod +x webapp/gradlew
@@ -78,30 +85,9 @@ jobs:
       - name: Generate protobuf files
         run: |
           cd webapp
-          ./gradlew generateProto
+          ./gradlew generateProto --no-daemon
 
-      - name: Run tests with coverage
+      - name: Run tests
         run: |
           cd webapp
-          ./gradlew test jacocoTestReport
-
-      - name: SonarCloud Analysis
-        env:
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          EVENT_NAME: ${{ github.event_name }}
-          PR_NUMBER: ${{ github.event.pull_request.number }}
-          HEAD_REF: ${{ github.head_ref }}
-          BASE_REF: ${{ github.base_ref }}
-        run: |
-          cd webapp
-          if [ "$EVENT_NAME" = "pull_request" ]; then
-            ./gradlew sonar \
-              -Dsonar.token="$SONAR_TOKEN" \
-              -Dsonar.pullrequest.key="$PR_NUMBER" \
-              -Dsonar.pullrequest.branch="$HEAD_REF" \
-              -Dsonar.pullrequest.base="$BASE_REF"
-          else
-            ./gradlew sonar \
-              -Dsonar.token="$SONAR_TOKEN"
-          fi
+          ./gradlew test --no-daemon

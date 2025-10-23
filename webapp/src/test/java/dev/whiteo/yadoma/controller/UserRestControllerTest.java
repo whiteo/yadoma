@@ -36,7 +36,7 @@ class UserRestControllerTest {
     @Test
     void me_success() {
         String userId = "user123";
-        UserResponse response = new UserResponse("test@email.com", Role.USER);
+        UserResponse response = new UserResponse(userId,"test@email.com", Role.USER);
         when(authInterceptor.getUserId()).thenReturn(userId);
         when(userService.me(userId)).thenReturn(response);
         ResponseEntity<UserResponse> result = userRestController.me();
@@ -78,8 +78,8 @@ class UserRestControllerTest {
     @Test
     void findAll_success() {
         String userId = "user123";
-        UserResponse response1 = new UserResponse("test1@email.com", Role.USER);
-        UserResponse response2 = new UserResponse("test2@email.com", Role.ADMIN);
+        UserResponse response1 = new UserResponse(userId,"test1@email.com", Role.USER);
+        UserResponse response2 = new UserResponse(userId, "test2@email.com", Role.ADMIN);
         List<UserResponse> responses = List.of(response1, response2);
 
         when(authInterceptor.getUserId()).thenReturn(userId);

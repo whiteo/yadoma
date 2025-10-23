@@ -34,6 +34,9 @@ class ContainerServiceTest {
     private ContainerServiceGrpc.ContainerServiceBlockingStub containerStub;
 
     @Mock
+    private image.v1.ImageServiceGrpc.ImageServiceBlockingStub imageStub;
+
+    @Mock
     private UserService userService;
 
     @Mock
@@ -123,6 +126,14 @@ class ContainerServiceTest {
     void create_ShouldCreateContainer() {
         ContainerCreateRequest request = new ContainerCreateRequest("test-container", "nginx:latest", Collections.emptyList());
         when(userService.getUserById(USER_ID)).thenReturn(testUser);
+
+        image.v1.Image.GetImagesResponse imagesResponse = image.v1.Image.GetImagesResponse.newBuilder()
+                .addImages(image.v1.Image.GetImageResponse.newBuilder()
+                        .addRepoTags("nginx:latest")
+                        .build())
+                .build();
+        when(imageStub.getImages(any())).thenReturn(imagesResponse);
+
         Container.CreateContainerResponse createResponse = Container.CreateContainerResponse.newBuilder()
                 .setId(CONTAINER_ID)
                 .build();
@@ -131,6 +142,7 @@ class ContainerServiceTest {
         assertDoesNotThrow(() -> containerService.create(request, USER_ID));
 
         verify(userService).getUserById(USER_ID);
+        verify(imageStub).getImages(any());
         verify(containerStub).createContainer(any());
         verify(userService).addContainerToUser(CONTAINER_ID, testUser);
     }
@@ -139,8 +151,17 @@ class ContainerServiceTest {
     void create_ShouldHandleGrpcErrorGracefully() {
         ContainerCreateRequest request = new ContainerCreateRequest("test-container", "nginx:latest", Collections.emptyList());
         when(userService.getUserById(USER_ID)).thenReturn(testUser);
-        when(containerStub.createContainer(any())).thenThrow(new RuntimeException("gRPC error"));
 
-        assertDoesNotThrow(() -> containerService.create(request, USER_ID));
+        image.v1.Image.GetImagesResponse imagesResponse = image.v1.Image.GetImagesResponse.newBuilder()
+                .addImages(image.v1.Image.GetImageResponse.newBuilder()
+                        .addRepoTags("nginx:latest")
+                        .build())
+                .build();
+        when(imageStub.getImages(any())).thenReturn(imagesResponse);
+
+        when(containerStub.createContainer(any())).thenThrow(new io.grpc.StatusRuntimeException(io.grpc.Status.INTERNAL));
+
+        assertThrows(dev.whiteo.yadoma.exception.ExecutionConflictException.class,
+                () -> containerService.create(request, USER_ID));
     }
 }

@@ -194,15 +194,12 @@ class RestExceptionHandlerTest {
 
     @Test
     void handleTypeMismatch_ShouldReturnBadRequest() {
-        // Arrange
         TypeMismatchException exception = mock(TypeMismatchException.class);
         when(exception.getMessage()).thenReturn("Type mismatch");
         when(exception.getRequiredType()).thenReturn((Class) String.class);
 
-        // Act
         ResponseEntity<ResponseError> response = restExceptionHandler.handleTypeMismatch(exception);
 
-        // Assert
         assertNotNull(response);
         assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
         assertNotNull(response.getBody());

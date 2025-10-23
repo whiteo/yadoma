@@ -1,0 +1,36 @@
+spring:
+  application:
+    name: yadoma-test
+  main:
+    banner-mode: off
+  data:
+    mongodb:
+      uri: mongodb://localhost:27017/yadoma-test
+
+server:
+  port: 0
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+
+logging:
+  level:
+    dev:
+      whiteo:
+        yadoma: INFO
+
+jwt:
+  expiration:
+    time: 3600000
+  secret:
+    key: test-secret-key-for-testing-purposes-only
+
+app:
+  version: "test"
+
+grpc:
+  host: localhost
+  port: 50051

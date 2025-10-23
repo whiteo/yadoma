@@ -8,13 +8,20 @@ spring:
       uri: ${MONGO_URI}
 server:
   port: 8080
-  servlet:
-    context-path: /yadoma
 springdoc:
   api-docs:
     enabled: true
   swagger-ui:
     path: /
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+      base-path: /actuator
+  endpoint:
+    health:
+      show-details: when-authorized
 logging:
   level:
     dev:

@@ -47,3 +47,22 @@ docker/monitoring/
 # Cache
 .cache/
 tmp/
+
+# Build artifacts
+.gradle/
+bin/
+
+# IDE files
+*.iml
+.settings/
+.classpath
+.project
+
+# Test files
+src/test/
+
+# Git
+.git/
+
+# Logs
+*.log

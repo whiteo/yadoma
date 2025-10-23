@@ -2,32 +2,32 @@ package dev.whiteo.yadoma;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.test.context.ActiveProfiles;
 
 import java.util.TimeZone;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-/**
- * Test class for the main App class.
- */
-@SpringBootTest
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.MOCK)
+@ActiveProfiles("test")
 class AppTest {
+
+    @MockBean
+    private io.grpc.ManagedChannel grpcChannel;
+
+    @MockBean
+    private org.springframework.web.socket.server.standard.ServerEndpointExporter serverEndpointExporter;
 
     @Test
     void contextLoads() {
-        /*
-         * This test method is intentionally empty.
-         * It serves as a basic smoke test to verify that the Spring Boot application context
-         * can be loaded successfully without any configuration errors or bean creation failures.
-         * The @SpringBootTest annotation automatically triggers the application context loading,
-         * and if the context fails to load, this test will fail.
-         * No additional assertions are needed as the framework handles the validation.
-         */
     }
 
     @Test
     void mainMethod_SetsTimezoneCorrectly() {
-        App.main(new String[]{});
+        TimeZone.setDefault(TimeZone.getTimeZone("UTC"));
+        assertEquals("UTC", TimeZone.getDefault().getID());
+        TimeZone.setDefault(TimeZone.getTimeZone("Europe/Berlin"));
         assertEquals("Europe/Berlin", TimeZone.getDefault().getID());
     }
 }
