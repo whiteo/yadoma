@@ -76,15 +76,6 @@ jobs:
           ./gradlew test jacocoTestReport --no-daemon
           echo "::endgroup::"
 
-      - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v5
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }}
-          files: ./webapp/build/reports/jacoco/test/jacocoTestReport.xml
-          flags: webapp
-          name: webapp-coverage
-          fail_ci_if_error: false
-
       - name: SonarCloud Analysis
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
