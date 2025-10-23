@@ -32,5 +32,4 @@ Thumbs.db
 /webapp/out/
 
 /ui/node_modules/
-/ui/package-lock.json
 /ui/dist/

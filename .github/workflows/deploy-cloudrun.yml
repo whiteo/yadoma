@@ -45,8 +45,6 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
-          cache-dependency-path: ui/package-lock.json
 
       - name: Setup protoc
         uses: arduino/setup-protoc@v3
