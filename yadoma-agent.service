@@ -1,0 +1,45 @@
+[Unit]
+Description=Yadoma Agent - Docker Management gRPC Service
+Documentation=https://github.com/whiteo/yadoma
+After=network.target docker.service
+Requires=docker.service
+
+[Service]
+Type=simple
+User=root
+Group=root
+
+# Path to the agent binary
+ExecStart=/opt/yadoma/yadoma-agent
+
+# Restart policy
+Restart=always
+RestartSec=10
+
+# Resource limits
+LimitNOFILE=65536
+LimitNPROC=4096
+
+# Environment variables
+Environment="GRPC_PORT=50051"
+Environment="LOG_LEVEL=info"
+
+# Working directory
+WorkingDirectory=/opt/yadoma
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=yadoma-agent
+
+# Security settings
+NoNewPrivileges=false
+PrivateTmp=true
+
+# Kill settings
+KillMode=process
+KillSignal=SIGTERM
+TimeoutStopSec=30
+
+[Install]
+WantedBy=multi-user.target

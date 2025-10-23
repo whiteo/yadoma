@@ -113,9 +113,15 @@ jobs:
             --command="sudo mv /tmp/${{ env.AGENT_BINARY }} ${{ env.DEPLOY_PATH }}/${{ env.AGENT_BINARY }} && sudo chmod +x ${{ env.DEPLOY_PATH }}/${{ env.AGENT_BINARY }}" \
             --tunnel-through-iap
 
+      - name: Verify files before deployment
+        run: |
+          pwd
+          ls -la
+          ls -la yadoma-agent.service || echo "Service file not found in root"
+
       - name: Deploy systemd service file
         run: |
-          gcloud compute scp ./yadoma-agent.service \
+          gcloud compute scp $GITHUB_WORKSPACE/yadoma-agent.service \
             ${{ secrets.GCP_VM_INSTANCE }}:/tmp/yadoma-agent.service \
             --zone=${{ env.GCP_ZONE }} \
             --tunnel-through-iap
