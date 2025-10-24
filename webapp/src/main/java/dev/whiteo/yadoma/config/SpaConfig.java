@@ -32,12 +32,10 @@ public class SpaConfig implements WebMvcConfigurer {
                     protected Resource getResource(String resourcePath, Resource location) throws IOException {
                         Resource requestedResource = location.createRelative(resourcePath);
 
-                        // If the requested resource exists, serve it (JS, CSS, images, etc.)
                         if (requestedResource.exists() && requestedResource.isReadable()) {
                             return requestedResource;
                         }
 
-                        // For API and backend endpoints, don't redirect to index.html
                         if (resourcePath.startsWith("api/")
                                 || resourcePath.startsWith("actuator/")
                                 || resourcePath.startsWith("swagger-ui")
@@ -51,7 +49,6 @@ public class SpaConfig implements WebMvcConfigurer {
                             return null;
                         }
 
-                        // For all other requests (client-side routes), serve index.html
                         return new ClassPathResource("/static/index.html");
                     }
                 });

@@ -314,7 +314,7 @@ const DashboardPage = () => {
   const connectStatsWebSocket = (containerId) => {
     const token = localStorage.getItem('token');
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const wsUrl = `${protocol}//${window.location.host}/yadoma/ws/containers/${containerId}/stats?token=${encodeURIComponent(token)}`;
+    const wsUrl = `${protocol}//${window.location.host}/ws/containers/${containerId}/stats?token=${encodeURIComponent(token)}`;
     const ws = new WebSocket(wsUrl);
 
     ws.onopen = () => {};
