@@ -19,6 +19,7 @@ import java.util.Collections;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -303,5 +304,41 @@ class ContainerServiceTest {
         assertThrows(RuntimeException.class, () -> containerService.create(request, USER_ID));
 
         verify(imageStub).getImages(any());
+    }
+
+    @Test
+    void findAll_ShouldHandleNullContainerIds() {
+        User userWithNullContainerIds = new User();
+        userWithNullContainerIds.setId(USER_ID);
+        userWithNullContainerIds.setContainerIds(null);
+
+        when(userService.validateUserAccess(USER_ID, USER_ID)).thenReturn(userWithNullContainerIds);
+
+        Container.GetContainerResponse containerResponse = Container.GetContainerResponse.newBuilder()
+                .setId("test-container")
+                .addNames("test")
+                .setState("running")
+                .setImage("nginx:latest")
+                .build();
+        Container.GetContainersResponse containersResponse = Container.GetContainersResponse.newBuilder()
+                .addContainers(containerResponse)
+                .build();
+
+        when(containerStub.getContainers(any())).thenReturn(containersResponse);
+
+        List<ContainerResponse> result = containerService.findAll(USER_ID, USER_ID);
+
+        assertNotNull(result);
+        assertEquals(0, result.size());
+    }
+
+    @Test
+    void findAll_ShouldHandleException() {
+        when(userService.validateUserAccess(USER_ID, USER_ID)).thenReturn(testUser);
+        when(containerStub.getContainers(any())).thenThrow(new RuntimeException("gRPC error"));
+
+        List<ContainerResponse> result = containerService.findAll(USER_ID, USER_ID);
+
+        assertNull(result);
     }
 }
