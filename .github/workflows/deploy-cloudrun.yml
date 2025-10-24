@@ -151,7 +151,7 @@ jobs:
         run: |
           echo "::group::Building Docker image"
           IMAGE_NAME="gcr.io/${{ steps.get-project.outputs.project_id }}/yadoma-webapp"
-          docker build -f Dockerfile.webapp \
+          docker build -f Dockerfile \
             -t ${IMAGE_NAME}:${{ github.sha }} \
             -t ${IMAGE_NAME}:latest \
             .
