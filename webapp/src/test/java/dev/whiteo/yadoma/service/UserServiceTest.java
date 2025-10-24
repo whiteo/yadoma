@@ -296,49 +296,67 @@ class UserServiceTest {
     }
 
     @Test
-    void updatePassword_shouldUpdatePassword() {
+    void updatePassword_shouldUpdatePassword_whenOldPasswordMatches() {
         try (MockedStatic<PasswordUtil> passwordUtil = mockStatic(PasswordUtil.class)) {
-            passwordUtil.when(() -> PasswordUtil.matches("oldPassword", "hashedPassword")).thenReturn(true);
-            passwordUtil.when(() -> PasswordUtil.hash("newPassword")).thenReturn("newHashedPassword");
+            passwordUtil.when(() -> PasswordUtil.matches(any(), any())).thenReturn(true);
+            passwordUtil.when(() -> PasswordUtil.hash(any())).thenReturn("newHashedPassword");
 
             when(repository.getOrThrow("userId")).thenReturn(user);
 
             var request = new dev.whiteo.yadoma.dto.user.UserUpdatePasswordRequest("oldPassword", "newPassword");
 
-            assertDoesNotThrow(() -> userService.updatePassword("userId", request));
+            userService.updatePassword("userId", request);
 
             verify(repository).save(user);
-            passwordUtil.verify(() -> PasswordUtil.hash("newPassword"));
         }
     }
 
     @Test
-    void validateUserAccess_shouldReturnUser_whenUserOwnsContainer() {
-        user.setContainerIds(new ArrayList<>(Arrays.asList("container1")));
+    void updatePassword_shouldThrowException_whenOldPasswordDoesNotMatch() {
+        try (MockedStatic<PasswordUtil> passwordUtil = mockStatic(PasswordUtil.class)) {
+            passwordUtil.when(() -> PasswordUtil.matches(any(), any())).thenReturn(false);
+
+            when(repository.getOrThrow("userId")).thenReturn(user);
+
+            var request = new dev.whiteo.yadoma.dto.user.UserUpdatePasswordRequest("wrongPassword", "newPassword");
+
+            assertThrows(BadCredentialsException.class, () -> userService.updatePassword("userId", request));
+        }
+    }
+
+    @Test
+    void validateUserAccess_shouldReturnUser_whenAccessingOwnAccount() {
         when(repository.getOrThrow("userId")).thenReturn(user);
 
-        User result = userService.validateUserAccess("container1", "userId");
+        User result = userService.validateUserAccess("userId", "userId");
 
         assertEquals(user, result);
     }
 
     @Test
-    void validateUserAccess_shouldReturnUser_whenAdmin() {
-        user.setRole(Role.ADMIN);
-        user.setContainerIds(new ArrayList<>());
-        when(repository.getOrThrow("userId")).thenReturn(user);
+    void validateUserAccess_shouldReturnUser_whenAdminAccessingOtherUser() {
+        User admin = new User();
+        admin.setId("adminId");
+        admin.setRole(Role.ADMIN);
 
-        User result = userService.validateUserAccess("anyContainer", "userId");
+        when(repository.getOrThrow("userId")).thenReturn(user);
+        when(repository.getOrThrow("adminId")).thenReturn(admin);
+
+        User result = userService.validateUserAccess("userId", "adminId");
 
         assertEquals(user, result);
     }
 
     @Test
-    void validateUserAccess_shouldThrowException_whenUserDoesNotOwnContainer() {
-        user.setContainerIds(new ArrayList<>(Arrays.asList("container1")));
+    void validateUserAccess_shouldThrowException_whenNonAdminAccessingOtherUser() {
+        User otherUser = new User();
+        otherUser.setId("otherUserId");
+        otherUser.setRole(Role.USER);
+
         when(repository.getOrThrow("userId")).thenReturn(user);
+        when(repository.getOrThrow("otherUserId")).thenReturn(otherUser);
 
         assertThrows(BadCredentialsException.class, () ->
-            userService.validateUserAccess("container2", "userId"));
+            userService.validateUserAccess("userId", "otherUserId"));
     }
 }

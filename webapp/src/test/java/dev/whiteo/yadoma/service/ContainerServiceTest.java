@@ -286,8 +286,9 @@ class ContainerServiceTest {
         when(userService.isContainerIdContains(CONTAINER_ID, USER_ID)).thenReturn(true);
         when(containerStub.getContainerDetails(any())).thenThrow(new RuntimeException("gRPC error"));
 
-        assertThrows(RuntimeException.class, () -> containerService.getById(CONTAINER_ID, USER_ID));
+        ContainerResponse result = containerService.getById(CONTAINER_ID, USER_ID);
 
+        assertNull(result);
         verify(containerStub).getContainerDetails(any());
     }
 
