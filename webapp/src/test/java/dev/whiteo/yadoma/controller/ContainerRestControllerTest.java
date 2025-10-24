@@ -120,4 +120,24 @@ class ContainerRestControllerTest {
         assertEquals(HttpStatus.OK, response.getStatusCode());
         verify(containerService).restart(CONTAINER_ID, USER_ID);
     }
+
+    @Test
+    void getLogs_ShouldReturnStreamingResponseBody() {
+        org.springframework.http.ResponseEntity<org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody> response =
+                containerRestController.getLogs(CONTAINER_ID, false);
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertNotNull(response.getBody());
+        assertEquals(org.springframework.http.MediaType.TEXT_PLAIN, response.getHeaders().getContentType());
+    }
+
+    @Test
+    void getLogs_ShouldReturnStreamingResponseBodyWithFollow() {
+        org.springframework.http.ResponseEntity<org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody> response =
+                containerRestController.getLogs(CONTAINER_ID, true);
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertNotNull(response.getBody());
+        assertEquals(org.springframework.http.MediaType.TEXT_PLAIN, response.getHeaders().getContentType());
+    }
 }

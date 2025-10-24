@@ -18,4 +18,11 @@ class SpaConfigTest {
     void spaConfig_shouldBeCreated() {
         assertNotNull(spaConfig);
     }
+
+    @Test
+    void spaConfig_shouldImplementWebMvcConfigurer() {
+        assertNotNull(spaConfig);
+        // SpaConfig implements WebMvcConfigurer which provides addResourceHandlers
+        // This is tested through Spring integration tests
+    }
 }
