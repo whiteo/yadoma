@@ -16,7 +16,7 @@ import org.springframework.stereotype.Component;
 @Component
 public class SpringWebSocketConfigurator extends ServerEndpointConfig.Configurator implements ApplicationContextAware {
 
-    private static volatile BeanFactory context;
+    private static BeanFactory context;
 
     @Override
     public <T> T getEndpointInstance(Class<T> endpointClass) throws InstantiationException {
