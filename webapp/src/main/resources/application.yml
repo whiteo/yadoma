@@ -12,7 +12,7 @@ springdoc:
   api-docs:
     enabled: true
   swagger-ui:
-    path: /
+    path: /swagger-ui
 management:
   endpoints:
     web:

@@ -98,7 +98,7 @@ Automatically deploys to Google Cloud Run on push to `main`:
 
 ### Agent
 ```bash
---agent-tcp-port=:50051    # gRPC listen address
+--agent-tcp-port=:50001    # gRPC listen address
 --docker-socket=/var/run/docker.sock
 ```
 
@@ -114,7 +114,7 @@ Environment variables:
 
 **Endpoints:**
 - `/` - React UI
-- `/swagger-ui/` - API documentation
+- `/swagger-ui/index.html` - API documentation
 - `/actuator/health` - Health check
 - `/api/*` - REST API
 - `/ws/*` - WebSocket endpoints

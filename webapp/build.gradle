@@ -146,7 +146,7 @@ task installUI(type: Exec) {
     }
 
     inputs.file('../ui/package.json')
-    // package-lock.json is optional - it will be created if missing
+
     inputs.files(fileTree('../ui') {
         include 'package-lock.json'
     }).optional(true)

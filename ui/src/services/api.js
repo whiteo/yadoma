@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_BASE_URL = '/yadoma/api/v1';
+const API_BASE_URL = '/api/v1';
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -107,7 +107,7 @@ export const containerApi = {
   getContainerLogsWsUrl: (containerId) => {
     const token = localStorage.getItem('token');
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    return `${protocol}//${window.location.host}/yadoma/ws/containers/${containerId}/logs?token=${encodeURIComponent(token)}`;
+    return `${protocol}//${window.location.host}/ws/containers/${containerId}/logs?token=${encodeURIComponent(token)}`;
   },
 };
 
