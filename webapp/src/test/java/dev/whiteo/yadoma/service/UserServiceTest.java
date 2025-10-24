@@ -359,4 +359,45 @@ class UserServiceTest {
         assertThrows(BadCredentialsException.class, () ->
             userService.validateUserAccess("userId", "otherUserId"));
     }
+
+    @Test
+    void getToken_shouldThrowException_whenEmailNotFound() {
+        var request = new dev.whiteo.yadoma.dto.user.UserLoginRequest("nonexistent@example.com", "password");
+        when(repository.findByEmailIgnoreCase("nonexistent@example.com")).thenReturn(java.util.Optional.empty());
+
+        assertThrows(BadCredentialsException.class, () ->
+            userService.getToken(request));
+    }
+
+    @Test
+    void create_shouldThrowException_whenEmailAlreadyExists() {
+        var request = new dev.whiteo.yadoma.dto.user.UserCreateRequest("existing@example.com", "password");
+        when(repository.findByEmailIgnoreCase("existing@example.com")).thenReturn(java.util.Optional.of(user));
+
+        assertThrows(RuntimeException.class, () ->
+            userService.create(request));
+    }
+
+    @Test
+    void remove_shouldDeleteUser_whenAdminDeletesUser() {
+        User admin = new User();
+        admin.setId("adminId");
+        admin.setRole(Role.ADMIN);
+
+        when(repository.getOrThrow("userId")).thenReturn(user);
+        when(repository.getOrThrow("adminId")).thenReturn(admin);
+
+        userService.remove("userId", "adminId");
+
+        verify(repository).delete(user);
+    }
+
+    @Test
+    void remove_shouldDeleteOwnAccount() {
+        when(repository.getOrThrow("userId")).thenReturn(user);
+
+        userService.remove("userId", "userId");
+
+        verify(repository).delete(user);
+    }
 }
