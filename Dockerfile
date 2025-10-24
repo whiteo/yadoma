@@ -1,4 +1,4 @@
-FROM gradle:8.12-jdk25 AS builder
+FROM gradle:9.1.0-jdk25 AS builder
 
 WORKDIR /app
 
@@ -8,7 +8,7 @@ COPY ui /app/ui
 
 RUN apt-get update && \
     apt-get install -y curl && \
-    curl -fsSL https://deb.nodesource.com/setup_18.x | bash - && \
+    curl -fsSL https://deb.nodesource.com/setup_22.x | bash - && \
     apt-get install -y nodejs && \
     rm -rf /var/lib/apt/lists/*
 
