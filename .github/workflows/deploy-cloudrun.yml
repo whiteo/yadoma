@@ -145,22 +145,22 @@ jobs:
           echo "Using GCP Project ID: $PROJECT_ID"
 
       - name: Configure Docker to use gcloud as credential helper
-        run: gcloud auth configure-docker gcr.io
+        run: gcloud auth configure-docker europe-west1-docker.pkg.dev
 
       - name: Build Docker image
         run: |
           echo "::group::Building Docker image"
-          IMAGE_NAME="gcr.io/${{ steps.get-project.outputs.project_id }}/yadoma-webapp"
+          IMAGE_NAME="europe-west1-docker.pkg.dev/${{ steps.get-project.outputs.project_id }}/yadoma-repo/yadoma-webapp"
           docker build -f Dockerfile \
             -t ${IMAGE_NAME}:${{ github.sha }} \
             -t ${IMAGE_NAME}:latest \
             .
           echo "::endgroup::"
 
-      - name: Push Docker image to GCR
+      - name: Push Docker image to Artifact Registry
         run: |
-          echo "::group::Pushing to Google Container Registry"
-          IMAGE_NAME="gcr.io/${{ steps.get-project.outputs.project_id }}/yadoma-webapp"
+          echo "::group::Pushing to Artifact Registry"
+          IMAGE_NAME="europe-west1-docker.pkg.dev/${{ steps.get-project.outputs.project_id }}/yadoma-repo/yadoma-webapp"
           docker push ${IMAGE_NAME}:${{ github.sha }}
           docker push ${IMAGE_NAME}:latest
           echo "::endgroup::"
@@ -168,7 +168,7 @@ jobs:
       - name: Deploy to Cloud Run
         run: |
           echo "::group::Deploying to Cloud Run"
-          IMAGE_NAME="gcr.io/${{ steps.get-project.outputs.project_id }}/yadoma-webapp"
+          IMAGE_NAME="europe-west1-docker.pkg.dev/${{ steps.get-project.outputs.project_id }}/yadoma-repo/yadoma-webapp"
           gcloud run deploy ${{ env.SERVICE_NAME }} \
             --image=${IMAGE_NAME}:${{ github.sha }} \
             --region=${{ env.GCP_REGION }} \
