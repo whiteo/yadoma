@@ -7,7 +7,7 @@ spring:
     mongodb:
       uri: ${MONGO_URI}
 server:
-  port: 8080
+  port: ${PORT}
 springdoc:
   api-docs:
     enabled: true

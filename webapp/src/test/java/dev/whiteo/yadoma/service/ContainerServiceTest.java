@@ -164,4 +164,143 @@ class ContainerServiceTest {
         assertThrows(dev.whiteo.yadoma.exception.ExecutionConflictException.class,
                 () -> containerService.create(request, USER_ID));
     }
+
+    @Test
+    void delete_ShouldDeleteContainer() {
+        when(userService.isContainerIdContains(CONTAINER_ID, USER_ID)).thenReturn(true);
+        when(userService.getUserById(USER_ID)).thenReturn(testUser);
+        Container.RemoveContainerResponse removeResponse = Container.RemoveContainerResponse.newBuilder()
+                .setSuccess(true)
+                .build();
+        when(containerStub.removeContainer(any())).thenReturn(removeResponse);
+
+        assertDoesNotThrow(() -> containerService.delete(CONTAINER_ID, USER_ID));
+
+        verify(userService).getUserById(USER_ID);
+        verify(containerStub).removeContainer(any());
+        verify(userService).removeContainerFromUser(CONTAINER_ID, testUser);
+    }
+
+    @Test
+    void delete_ShouldThrowWhenRemoveFails() {
+        when(userService.isContainerIdContains(CONTAINER_ID, USER_ID)).thenReturn(true);
+        when(userService.getUserById(USER_ID)).thenReturn(testUser);
+        Container.RemoveContainerResponse removeResponse = Container.RemoveContainerResponse.newBuilder()
+                .setSuccess(false)
+                .build();
+        when(containerStub.removeContainer(any())).thenReturn(removeResponse);
+
+        assertThrows(dev.whiteo.yadoma.exception.ExecutionConflictException.class, () ->
+                containerService.delete(CONTAINER_ID, USER_ID));
+
+        verify(userService).getUserById(USER_ID);
+        verify(containerStub).removeContainer(any());
+    }
+
+    @Test
+    void start_ShouldStartContainer() {
+        when(userService.isContainerIdContains(CONTAINER_ID, USER_ID)).thenReturn(true);
+        Container.StartContainerResponse startResponse = Container.StartContainerResponse.newBuilder()
+                .setSuccess(true)
+                .build();
+        when(containerStub.startContainer(any())).thenReturn(startResponse);
+
+        assertDoesNotThrow(() -> containerService.start(CONTAINER_ID, USER_ID));
+
+        verify(userService).isContainerIdContains(CONTAINER_ID, USER_ID);
+        verify(containerStub).startContainer(any());
+    }
+
+    @Test
+    void start_ShouldThrowWhenStartFails() {
+        when(userService.isContainerIdContains(CONTAINER_ID, USER_ID)).thenReturn(true);
+        Container.StartContainerResponse startResponse = Container.StartContainerResponse.newBuilder()
+                .setSuccess(false)
+                .build();
+        when(containerStub.startContainer(any())).thenReturn(startResponse);
+
+        assertThrows(dev.whiteo.yadoma.exception.ExecutionConflictException.class, () ->
+                containerService.start(CONTAINER_ID, USER_ID));
+
+        verify(containerStub).startContainer(any());
+    }
+
+    @Test
+    void stop_ShouldStopContainer() {
+        when(userService.isContainerIdContains(CONTAINER_ID, USER_ID)).thenReturn(true);
+        Container.StopContainerResponse stopResponse = Container.StopContainerResponse.newBuilder()
+                .setSuccess(true)
+                .build();
+        when(containerStub.stopContainer(any())).thenReturn(stopResponse);
+
+        assertDoesNotThrow(() -> containerService.stop(CONTAINER_ID, USER_ID));
+
+        verify(userService).isContainerIdContains(CONTAINER_ID, USER_ID);
+        verify(containerStub).stopContainer(any());
+    }
+
+    @Test
+    void stop_ShouldThrowWhenStopFails() {
+        when(userService.isContainerIdContains(CONTAINER_ID, USER_ID)).thenReturn(true);
+        Container.StopContainerResponse stopResponse = Container.StopContainerResponse.newBuilder()
+                .setSuccess(false)
+                .build();
+        when(containerStub.stopContainer(any())).thenReturn(stopResponse);
+
+        assertThrows(dev.whiteo.yadoma.exception.ExecutionConflictException.class, () ->
+                containerService.stop(CONTAINER_ID, USER_ID));
+
+        verify(containerStub).stopContainer(any());
+    }
+
+    @Test
+    void restart_ShouldRestartContainer() {
+        when(userService.isContainerIdContains(CONTAINER_ID, USER_ID)).thenReturn(true);
+        Container.RestartContainerResponse restartResponse = Container.RestartContainerResponse.newBuilder()
+                .setSuccess(true)
+                .build();
+        when(containerStub.restartContainer(any())).thenReturn(restartResponse);
+
+        assertDoesNotThrow(() -> containerService.restart(CONTAINER_ID, USER_ID));
+
+        verify(userService).isContainerIdContains(CONTAINER_ID, USER_ID);
+        verify(containerStub).restartContainer(any());
+    }
+
+    @Test
+    void restart_ShouldThrowWhenRestartFails() {
+        when(userService.isContainerIdContains(CONTAINER_ID, USER_ID)).thenReturn(true);
+        Container.RestartContainerResponse restartResponse = Container.RestartContainerResponse.newBuilder()
+                .setSuccess(false)
+                .build();
+        when(containerStub.restartContainer(any())).thenReturn(restartResponse);
+
+        assertThrows(dev.whiteo.yadoma.exception.ExecutionConflictException.class, () ->
+                containerService.restart(CONTAINER_ID, USER_ID));
+
+        verify(containerStub).restartContainer(any());
+    }
+
+    @Test
+    void getById_ShouldHandleGrpcError() {
+        when(userService.isContainerIdContains(CONTAINER_ID, USER_ID)).thenReturn(true);
+        when(containerStub.getContainerDetails(any())).thenThrow(new RuntimeException("gRPC error"));
+
+        assertThrows(RuntimeException.class, () -> containerService.getById(CONTAINER_ID, USER_ID));
+
+        verify(containerStub).getContainerDetails(any());
+    }
+
+    @Test
+    void create_ShouldPullImage_whenImageNotExists() {
+        ContainerCreateRequest request = new ContainerCreateRequest("test-container", "nonexistent:latest", Collections.emptyList());
+        when(userService.getUserById(USER_ID)).thenReturn(testUser);
+
+        image.v1.Image.GetImagesResponse emptyImagesResponse = image.v1.Image.GetImagesResponse.newBuilder().build();
+        when(imageStub.getImages(any())).thenReturn(emptyImagesResponse);
+
+        assertThrows(RuntimeException.class, () -> containerService.create(request, USER_ID));
+
+        verify(imageStub).getImages(any());
+    }
 }
