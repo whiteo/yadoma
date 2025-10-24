@@ -98,6 +98,7 @@ public class UserService implements UserDetailsService {
         User user = repository.getOrThrow(userId);
         verifyPassword(request.oldPassword(), user.getPasswordHash());
         user.setPasswordHash(PasswordUtil.hash(request.password()));
+        repository.save(user);
     }
 
     /**

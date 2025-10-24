@@ -102,6 +102,21 @@ jacocoTestReport {
         xml.required = true
         html.required = true
     }
+    afterEvaluate {
+        classDirectories.setFrom(files(classDirectories.files.collect {
+            fileTree(dir: it, exclude: [
+                '**/build/generated/**',
+                '**/proto/**',
+                '**/*Grpc*',
+                '**/*Proto*',
+                '**/container/v1/**',
+                '**/image/v1/**',
+                '**/network/v1/**',
+                '**/system/v1/**',
+                '**/volume/v1/**'
+            ])
+        }))
+    }
 }
 
 task buildUI(type: Exec) {
@@ -166,6 +181,8 @@ sonar {
         property "sonar.java.test.binaries", "build/classes/java/test"
         property "sonar.coverage.jacoco.xmlReportPaths", "build/reports/jacoco/test/jacocoTestReport.xml"
         property "sonar.java.coveragePlugin", "jacoco"
+        property "sonar.exclusions", "**/build/generated/**"
+        property "sonar.coverage.exclusions", "**/build/generated/**,**/proto/**,**/*Grpc*.java,**/*Proto*.java"
     }
 }
 

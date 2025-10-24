@@ -23,6 +23,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.userdetails.UserDetails;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
@@ -201,5 +202,161 @@ class UserServiceTest {
 
         assertFalse(result.valid());
         verify(tokenInteract).validateToken("invalidtoken");
+    }
+
+    @Test
+    void getUserById_shouldReturnUser() {
+        when(repository.getOrThrow("userId")).thenReturn(user);
+
+        User result = userService.getUserById("userId");
+
+        assertNotNull(result);
+        assertEquals(user, result);
+        verify(repository).getOrThrow("userId");
+    }
+
+    @Test
+    void removeContainerFromUser_shouldRemoveAndSave() {
+        user.setContainerIds(new ArrayList<>(Arrays.asList("container1", "container2")));
+
+        userService.removeContainerFromUser("container1", user);
+
+        assertEquals(1, user.getContainerIds().size());
+        assertFalse(user.getContainerIds().contains("container1"));
+        verify(repository).save(user);
+    }
+
+    @Test
+    void addContainerToUser_shouldAddAndSave() {
+        ArrayList<String> containerIds = new ArrayList<>(Arrays.asList("container1"));
+        user.setContainerIds(containerIds);
+        when(repository.save(any(User.class))).thenReturn(user);
+
+        userService.addContainerToUser("container2", user);
+
+        assertEquals(2, containerIds.size());
+        assertTrue(containerIds.contains("container2"));
+        verify(repository).save(user);
+    }
+
+    @Test
+    void addContainerToUser_withNullList_shouldInitializeAndAdd() {
+        user.setContainerIds(null);
+        when(repository.save(any(User.class))).thenReturn(user);
+
+        userService.addContainerToUser("container1", user);
+
+        assertNotNull(user.getContainerIds());
+        assertEquals(1, user.getContainerIds().size());
+        assertTrue(user.getContainerIds().contains("container1"));
+        verify(repository).save(user);
+    }
+
+    @Test
+    void findAll_shouldReturnAllUsers_whenAdmin() {
+        User admin = new User();
+        admin.setId("adminId");
+        admin.setRole(Role.ADMIN);
+
+        User user2 = new User();
+        user2.setId("user2Id");
+        user2.setEmail("user2@example.com");
+
+        when(repository.getOrThrow("adminId")).thenReturn(admin);
+        when(repository.findAll()).thenReturn(Arrays.asList(admin, user, user2));
+        when(mapper.toResponse(any(User.class))).thenReturn(userResponse);
+
+        var result = userService.findAll("adminId");
+
+        assertEquals(3, result.size());
+        verify(repository).findAll();
+    }
+
+    @Test
+    void findAll_shouldThrowException_whenNotAdmin() {
+        user.setRole(Role.USER);
+        when(repository.getOrThrow("userId")).thenReturn(user);
+
+        assertThrows(BadCredentialsException.class, () -> userService.findAll("userId"));
+        verify(repository).getOrThrow("userId");
+    }
+
+    @Test
+    void remove_shouldDeleteUser_whenAdmin() {
+        User admin = new User();
+        admin.setId("adminId");
+        admin.setRole(Role.ADMIN);
+
+        when(repository.getOrThrow("adminId")).thenReturn(admin);
+        when(repository.getOrThrow("userId")).thenReturn(user);
+
+        assertDoesNotThrow(() -> userService.remove("userId", "adminId"));
+
+        verify(repository).delete(user);
+    }
+
+    @Test
+    void updatePassword_shouldUpdatePassword_whenOldPasswordMatches() {
+        try (MockedStatic<PasswordUtil> passwordUtil = mockStatic(PasswordUtil.class)) {
+            passwordUtil.when(() -> PasswordUtil.matches(any(), any())).thenReturn(true);
+            passwordUtil.when(() -> PasswordUtil.hash(any())).thenReturn("newHashedPassword");
+
+            when(repository.getOrThrow("userId")).thenReturn(user);
+
+            var request = new dev.whiteo.yadoma.dto.user.UserUpdatePasswordRequest("oldPassword", "newPassword");
+
+            userService.updatePassword("userId", request);
+
+            verify(repository).save(user);
+        }
+    }
+
+    @Test
+    void updatePassword_shouldThrowException_whenOldPasswordDoesNotMatch() {
+        try (MockedStatic<PasswordUtil> passwordUtil = mockStatic(PasswordUtil.class)) {
+            passwordUtil.when(() -> PasswordUtil.matches(any(), any())).thenReturn(false);
+
+            when(repository.getOrThrow("userId")).thenReturn(user);
+
+            var request = new dev.whiteo.yadoma.dto.user.UserUpdatePasswordRequest("wrongPassword", "newPassword");
+
+            assertThrows(BadCredentialsException.class, () -> userService.updatePassword("userId", request));
+        }
+    }
+
+    @Test
+    void validateUserAccess_shouldReturnUser_whenAccessingOwnAccount() {
+        when(repository.getOrThrow("userId")).thenReturn(user);
+
+        User result = userService.validateUserAccess("userId", "userId");
+
+        assertEquals(user, result);
+    }
+
+    @Test
+    void validateUserAccess_shouldReturnUser_whenAdminAccessingOtherUser() {
+        User admin = new User();
+        admin.setId("adminId");
+        admin.setRole(Role.ADMIN);
+
+        when(repository.getOrThrow("userId")).thenReturn(user);
+        when(repository.getOrThrow("adminId")).thenReturn(admin);
+
+        User result = userService.validateUserAccess("userId", "adminId");
+
+        assertEquals(user, result);
+    }
+
+    @Test
+    void validateUserAccess_shouldThrowException_whenNonAdminAccessingOtherUser() {
+        User otherUser = new User();
+        otherUser.setId("otherUserId");
+        otherUser.setRole(Role.USER);
+
+        when(repository.getOrThrow("userId")).thenReturn(user);
+        when(repository.getOrThrow("otherUserId")).thenReturn(otherUser);
+
+        assertThrows(BadCredentialsException.class, () ->
+            userService.validateUserAccess("userId", "otherUserId"));
     }
 }
