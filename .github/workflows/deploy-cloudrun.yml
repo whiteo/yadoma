@@ -15,12 +15,12 @@ on:
 env:
   GCP_REGION: europe-west1
   SERVICE_NAME: yadoma-webapp
-  NODE_VERSION: '18'
+  NODE_VERSION: '22'
   JAVA_VERSION: '25'
 
 jobs:
-  test-build-deploy:
-    name: Test, Build & Deploy to Cloud Run
+  build-and-deploy:
+    name: Build & Deploy to Cloud Run
     runs-on: ubuntu-latest
 
     permissions:
