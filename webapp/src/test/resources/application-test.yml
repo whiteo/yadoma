@@ -1,36 +1,38 @@
 spring:
   application:
-    name: yadoma-test
+    name: yadoma
   main:
     banner-mode: off
+    allow-bean-definition-overriding: true
   data:
     mongodb:
-      uri: mongodb://localhost:27017/yadoma-test
-
+      uri: mongodb+srv://doctrinefour_db_user:EGlZEIIG1SgXL22z@cluster0.2blb24a.mongodb.net/yadoma?retryWrites=true&w=majority
 server:
-  port: 0
-
+  port: ${PORT:8080}
+  servlet:
+    context-path: /
 management:
   endpoints:
     web:
       exposure:
         include: health,info
-
+      base-path: /actuator
+  endpoint:
+    health:
+      show-details: when-authorized
 logging:
   level:
     dev:
       whiteo:
-        yadoma: INFO
-
+        yadoma: DEBUG
 jwt:
   expiration:
-    time: 3600000
+    time: 7200000
   secret:
-    key: test-secret-key-for-testing-purposes-only
-
+    key: 1234567890ASDFGHJKLZXCVBNMASD123qwe1!!!!!!
 app:
-  version: "test"
-
+  websocket:
+    enabled: false
+  version: "@project.version@"
 grpc:
-  host: localhost
-  port: 50051
+  host: 34.76.152.18

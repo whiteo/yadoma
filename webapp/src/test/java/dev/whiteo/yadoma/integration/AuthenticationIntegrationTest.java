@@ -1,0 +1,152 @@
+package dev.whiteo.yadoma.integration;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+import dev.whiteo.yadoma.domain.User;
+import dev.whiteo.yadoma.dto.token.TokenResponse;
+import dev.whiteo.yadoma.dto.user.UserCreateRequest;
+import dev.whiteo.yadoma.dto.user.UserLoginRequest;
+import dev.whiteo.yadoma.repository.UserRepository;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Import;
+import org.springframework.http.MediaType;
+import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
+/**
+ * Integration tests for authentication endpoints using Testcontainers.
+ * Tests the complete authentication flow including user registration and login.
+ */
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@AutoConfigureMockMvc
+@ActiveProfiles("test")
+@Import(dev.whiteo.yadoma.config.TestSecurityConfig.class)
+class AuthenticationIntegrationTest {
+
+    @Autowired
+    private MockMvc mockMvc;
+
+    @Autowired
+    private ObjectMapper objectMapper;
+
+    @Autowired
+    private UserRepository userRepository;
+
+    @BeforeEach
+    void setUp() {
+        userRepository.deleteAll();
+    }
+
+    @Test
+    void shouldRegisterNewUser() throws Exception {
+        UserCreateRequest request = new UserCreateRequest(
+                "test@example.com",
+                "SecurePass123!"
+        );
+
+        mockMvc.perform(post("/api/v1/user/create")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isCreated());
+
+        User savedUser = userRepository.findByEmailIgnoreCase("test@example.com").orElse(null);
+        assertNotNull(savedUser);
+        assertEquals("test@example.com", savedUser.getEmail());
+    }
+
+    @Test
+    void shouldLoginWithValidCredentials() throws Exception {
+        
+        UserCreateRequest registerRequest = new UserCreateRequest(
+                "login@example.com",
+                "SecurePass123!"
+        );
+
+        mockMvc.perform(post("/api/v1/user/create")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(registerRequest)));
+
+        
+        UserLoginRequest loginRequest = new UserLoginRequest("login@example.com", "SecurePass123!");
+
+        MvcResult result = mockMvc.perform(post("/api/v1/authenticate")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(loginRequest)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.token").exists())
+                .andReturn();
+
+        String responseContent = result.getResponse().getContentAsString();
+        TokenResponse tokenResponse = objectMapper.readValue(responseContent, TokenResponse.class);
+
+        assertNotNull(tokenResponse.token());
+        assertFalse(tokenResponse.token().isEmpty());
+    }
+
+    @Test
+    void shouldRejectLoginWithInvalidPassword() throws Exception {
+        
+        UserCreateRequest registerRequest = new UserCreateRequest(
+                "invalid@example.com",
+                "CorrectPass123!"
+        );
+
+        mockMvc.perform(post("/api/v1/user/create")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(registerRequest)));
+
+        
+        UserLoginRequest loginRequest = new UserLoginRequest("invalid@example.com", "WrongPassword");
+
+        mockMvc.perform(post("/api/v1/authenticate")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(loginRequest)))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void shouldRejectLoginWithNonExistentUser() throws Exception {
+        UserLoginRequest loginRequest = new UserLoginRequest("nonexistent@example.com", "anypassword");
+
+        mockMvc.perform(post("/api/v1/authenticate")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(loginRequest)))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void shouldRejectDuplicateEmail() throws Exception {
+        UserCreateRequest request1 = new UserCreateRequest(
+                "duplicate@example.com",
+                "SecurePass123!"
+        );
+
+        
+        mockMvc.perform(post("/api/v1/user/create")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request1)))
+                .andExpect(status().isCreated());
+
+        UserCreateRequest request2 = new UserCreateRequest(
+                "duplicate@example.com",
+                "DifferentPass456!"
+        );
+
+        
+        mockMvc.perform(post("/api/v1/user/create")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request2)))
+                .andExpect(status().is4xxClientError());
+    }
+}

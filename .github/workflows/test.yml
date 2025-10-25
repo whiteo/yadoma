@@ -12,7 +12,7 @@ concurrency:
 jobs:
   test-agent:
     runs-on: ubuntu-latest
-    name: Test Agent (Go)
+    name: Test Agent
 
     steps:
       - name: Checkout code
@@ -52,24 +52,28 @@ jobs:
 
   test-webapp:
     runs-on: ubuntu-latest
-    name: Test WebApp (Java)
+    name: Test WebApp
+
+    env:
+      GRADLE_OPTS: "-Dorg.gradle.daemon=false -Dorg.gradle.jvmargs='-Xmx2g'"
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v5
 
-      - name: Set up JDK 25
+      - name: Set up JDK
         uses: actions/setup-java@v5
         with:
           java-version: '25'
           distribution: 'graalvm'
+          cache: gradle
 
       - name: Setup protoc
         uses: arduino/setup-protoc@v3
         with:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Cache Gradle packages
+      - name: Cache Gradle dependencies
         uses: actions/cache@v4
         with:
           path: |
@@ -82,12 +86,12 @@ jobs:
       - name: Grant execute permission for gradlew
         run: chmod +x webapp/gradlew
 
-      - name: Generate protobuf files
-        run: |
-          cd webapp
-          ./gradlew generateProto --no-daemon
+      - name: Generate protobuf sources
+        working-directory: webapp
+        run: ./gradlew generateProto --no-daemon
 
       - name: Run tests
+        working-directory: webapp
         run: |
-          cd webapp
-          ./gradlew test --no-daemon
+          docker ps
+          ./gradlew clean test jacocoTestReport jacocoTestCoverageVerification --no-daemon
