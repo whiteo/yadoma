@@ -3,24 +3,22 @@ spring:
     name: yadoma
   main:
     banner-mode: off
+  data:
+    mongodb:
+      uri: ${MONGO_URI}
+server:
+  port: ${PORT:8080}
 logging:
   level:
     dev:
       whiteo:
-        yadoma: DEBUG
-    de:
-      flapdoodle:
-        embed:
-          mongo: DEBUG
+        yadoma: ${APP_LOG_LEVEL}
 jwt:
   expiration:
-    time: 3600
+    time: ${TOKEN_EXPIRATION_TIME}
   secret:
-    key: testsecret
+    key: ${TOKEN_SECRET_KEY}
 app:
-  version: "0.1"
-de:
-  flapdoodle:
-    mongodb:
-      embedded:
-        version: 7.0.14
+  version: "@project.version@"
+grpc:
+  host: ${GRPC_HOST}

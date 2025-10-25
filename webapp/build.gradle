@@ -78,11 +78,6 @@ dependencies {
     // === Embedded MongoDB ===
     testImplementation "de.flapdoodle.embed:de.flapdoodle.embed.mongo.spring30x:${flapdoodleVersion}"
 
-    // === Testcontainers ===
-    testImplementation "org.testcontainers:testcontainers:${testcontainersVersion}"
-    testImplementation "org.testcontainers:junit-jupiter:${testcontainersVersion}"
-    testImplementation "org.testcontainers:mongodb:${testcontainersVersion}"
-
     // === Protobuf runtime ===
     implementation "com.google.protobuf:protobuf-java:${protobufVersion}"
 
