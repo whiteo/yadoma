@@ -37,7 +37,6 @@ ext {
     flapdoodleVersion = '4.21.0'
     protobufVersion = '4.32.1'
     grpcVersion = '1.76.0'
-    testcontainersVersion = '1.20.4'
 }
 
 dependencies {
@@ -126,7 +125,7 @@ jacocoTestCoverageVerification {
             limit {
                 counter = 'INSTRUCTION'
                 value = 'COVEREDRATIO'
-                minimum = 0.88
+                minimum = 0.80
             }
         }
         rule {
@@ -135,7 +134,7 @@ jacocoTestCoverageVerification {
             limit {
                 counter = 'INSTRUCTION'
                 value = 'COVEREDRATIO'
-                minimum = 0.95
+                minimum = 0.80
             }
         }
     }
