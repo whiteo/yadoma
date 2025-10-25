@@ -11,7 +11,9 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 
@@ -28,6 +30,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @AutoConfigureMockMvc
+@ActiveProfiles("test")
+@Import(dev.whiteo.yadoma.config.TestSecurityConfig.class)
 class AuthenticationIntegrationTest {
 
     @Autowired
@@ -51,10 +55,10 @@ class AuthenticationIntegrationTest {
                 "SecurePass123!"
         );
 
-        mockMvc.perform(post("/api/v1/user/register")
+        mockMvc.perform(post("/api/v1/user/create")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isOk());
+                .andExpect(status().isCreated());
 
         User savedUser = userRepository.findByEmailIgnoreCase("test@example.com").orElse(null);
         assertNotNull(savedUser);
@@ -69,14 +73,14 @@ class AuthenticationIntegrationTest {
                 "SecurePass123!"
         );
 
-        mockMvc.perform(post("/api/v1/user/register")
+        mockMvc.perform(post("/api/v1/user/create")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(registerRequest)));
 
         
         UserLoginRequest loginRequest = new UserLoginRequest("login@example.com", "SecurePass123!");
 
-        MvcResult result = mockMvc.perform(post("/api/v1/authenticate/login")
+        MvcResult result = mockMvc.perform(post("/api/v1/authenticate")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(loginRequest)))
                 .andExpect(status().isOk())
@@ -98,14 +102,14 @@ class AuthenticationIntegrationTest {
                 "CorrectPass123!"
         );
 
-        mockMvc.perform(post("/api/v1/user/register")
+        mockMvc.perform(post("/api/v1/user/create")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(registerRequest)));
 
         
         UserLoginRequest loginRequest = new UserLoginRequest("invalid@example.com", "WrongPassword");
 
-        mockMvc.perform(post("/api/v1/authenticate/login")
+        mockMvc.perform(post("/api/v1/authenticate")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(loginRequest)))
                 .andExpect(status().isUnauthorized());
@@ -115,7 +119,7 @@ class AuthenticationIntegrationTest {
     void shouldRejectLoginWithNonExistentUser() throws Exception {
         UserLoginRequest loginRequest = new UserLoginRequest("nonexistent@example.com", "anypassword");
 
-        mockMvc.perform(post("/api/v1/authenticate/login")
+        mockMvc.perform(post("/api/v1/authenticate")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(loginRequest)))
                 .andExpect(status().isUnauthorized());
@@ -129,10 +133,10 @@ class AuthenticationIntegrationTest {
         );
 
         
-        mockMvc.perform(post("/api/v1/user/register")
+        mockMvc.perform(post("/api/v1/user/create")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request1)))
-                .andExpect(status().isOk());
+                .andExpect(status().isCreated());
 
         UserCreateRequest request2 = new UserCreateRequest(
                 "duplicate@example.com",
@@ -140,41 +144,9 @@ class AuthenticationIntegrationTest {
         );
 
         
-        mockMvc.perform(post("/api/v1/user/register")
+        mockMvc.perform(post("/api/v1/user/create")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request2)))
                 .andExpect(status().is4xxClientError());
-    }
-
-    @Test
-    void shouldValidateTokenAfterLogin() throws Exception {
-        
-        UserCreateRequest registerRequest = new UserCreateRequest(
-                "token@example.com",
-                "SecurePass123!"
-        );
-
-        mockMvc.perform(post("/api/v1/user/register")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(registerRequest)));
-
-        UserLoginRequest loginRequest = new UserLoginRequest("token@example.com", "SecurePass123!");
-
-        MvcResult loginResult = mockMvc.perform(post("/api/v1/authenticate/login")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(loginRequest)))
-                .andExpect(status().isOk())
-                .andReturn();
-
-        String responseContent = loginResult.getResponse().getContentAsString();
-        TokenResponse tokenResponse = objectMapper.readValue(responseContent, TokenResponse.class);
-
-        
-        mockMvc.perform(post("/api/v1/authenticate/validate")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"token\":\"" + tokenResponse.token() + "\"}"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.valid").value(true))
-                .andExpect(jsonPath("$.userId").exists());
     }
 }

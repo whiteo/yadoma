@@ -1,0 +1,38 @@
+spring:
+  application:
+    name: yadoma
+  main:
+    banner-mode: off
+    allow-bean-definition-overriding: true
+  data:
+    mongodb:
+      uri: mongodb+srv://doctrinefour_db_user:EGlZEIIG1SgXL22z@cluster0.2blb24a.mongodb.net/yadoma?retryWrites=true&w=majority
+server:
+  port: ${PORT:8080}
+  servlet:
+    context-path: /
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+      base-path: /actuator
+  endpoint:
+    health:
+      show-details: when-authorized
+logging:
+  level:
+    dev:
+      whiteo:
+        yadoma: DEBUG
+jwt:
+  expiration:
+    time: 7200000
+  secret:
+    key: 1234567890ASDFGHJKLZXCVBNMASD123qwe1!!!!!!
+app:
+  websocket:
+    enabled: false
+  version: "@project.version@"
+grpc:
+  host: 34.76.152.18

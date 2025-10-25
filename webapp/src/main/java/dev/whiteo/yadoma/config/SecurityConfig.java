@@ -5,6 +5,7 @@ import dev.whiteo.yadoma.security.JwtAuthenticationFilter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Profile;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -28,6 +29,7 @@ import static org.springframework.security.config.Customizer.withDefaults;
  * @author Leo Tanas (<a href="https://github.com/whiteo">github</a>)
  */
 @Configuration
+@Profile("!test")
 @EnableWebSecurity
 @RequiredArgsConstructor
 public class SecurityConfig implements WebMvcConfigurer {

@@ -75,9 +75,6 @@ dependencies {
     // === OpenAPI ===
     implementation "org.springdoc:springdoc-openapi-starter-webmvc-ui:${springdocOpenapiVersion}"
 
-    // === Embedded MongoDB ===
-    testImplementation "de.flapdoodle.embed:de.flapdoodle.embed.mongo.spring30x:${flapdoodleVersion}"
-
     // === Protobuf runtime ===
     implementation "com.google.protobuf:protobuf-java:${protobufVersion}"
 
