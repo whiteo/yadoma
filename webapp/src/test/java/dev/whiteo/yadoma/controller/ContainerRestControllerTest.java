@@ -122,22 +122,90 @@ class ContainerRestControllerTest {
     }
 
     @Test
-    void getLogs_ShouldReturnStreamingResponseBody() {
+    void getLogs_ShouldReturnStreamingResponseBody() throws Exception {
+        container.v1.Container.GetContainerLogsResponse logResponse1 = container.v1.Container.GetContainerLogsResponse.newBuilder()
+                .setChunk(com.google.protobuf.ByteString.copyFromUtf8("Log line 1\n"))
+                .build();
+        container.v1.Container.GetContainerLogsResponse logResponse2 = container.v1.Container.GetContainerLogsResponse.newBuilder()
+                .setChunk(com.google.protobuf.ByteString.copyFromUtf8("Log line 2\n"))
+                .build();
+
+        java.util.Iterator<container.v1.Container.GetContainerLogsResponse> mockIterator = Arrays.asList(logResponse1, logResponse2).iterator();
+        when(containerService.getLogs(CONTAINER_ID, USER_ID, false)).thenReturn(mockIterator);
+
         org.springframework.http.ResponseEntity<org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody> response =
                 containerRestController.getLogs(CONTAINER_ID, false);
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertNotNull(response.getBody());
         assertEquals(org.springframework.http.MediaType.TEXT_PLAIN, response.getHeaders().getContentType());
+
+        java.io.ByteArrayOutputStream outputStream = new java.io.ByteArrayOutputStream();
+        response.getBody().writeTo(outputStream);
+        String result = outputStream.toString(java.nio.charset.StandardCharsets.UTF_8);
+        assertEquals("Log line 1\nLog line 2\n", result);
+
+        verify(containerService).getLogs(CONTAINER_ID, USER_ID, false);
     }
 
     @Test
-    void getLogs_ShouldReturnStreamingResponseBodyWithFollow() {
+    void getLogs_ShouldReturnStreamingResponseBodyWithFollow() throws Exception {
+        container.v1.Container.GetContainerLogsResponse logResponse = container.v1.Container.GetContainerLogsResponse.newBuilder()
+                .setChunk(com.google.protobuf.ByteString.copyFromUtf8("Following logs\n"))
+                .build();
+
+        java.util.Iterator<container.v1.Container.GetContainerLogsResponse> mockIterator = Collections.singletonList(logResponse).iterator();
+        when(containerService.getLogs(CONTAINER_ID, USER_ID, true)).thenReturn(mockIterator);
+
         org.springframework.http.ResponseEntity<org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody> response =
                 containerRestController.getLogs(CONTAINER_ID, true);
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertNotNull(response.getBody());
         assertEquals(org.springframework.http.MediaType.TEXT_PLAIN, response.getHeaders().getContentType());
+
+        java.io.ByteArrayOutputStream outputStream = new java.io.ByteArrayOutputStream();
+        response.getBody().writeTo(outputStream);
+        String result = outputStream.toString(java.nio.charset.StandardCharsets.UTF_8);
+        assertEquals("Following logs\n", result);
+
+        verify(containerService).getLogs(CONTAINER_ID, USER_ID, true);
+    }
+
+    @Test
+    void getLogs_ShouldHandleExceptionDuringStreaming() throws Exception {
+        java.util.Iterator<container.v1.Container.GetContainerLogsResponse> mockIterator = mock(java.util.Iterator.class);
+        when(mockIterator.hasNext()).thenReturn(true);
+        when(mockIterator.next()).thenThrow(new RuntimeException("Log streaming error"));
+        when(containerService.getLogs(CONTAINER_ID, USER_ID, false)).thenReturn(mockIterator);
+
+        org.springframework.http.ResponseEntity<org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody> response =
+                containerRestController.getLogs(CONTAINER_ID, false);
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertNotNull(response.getBody());
+
+        java.io.ByteArrayOutputStream outputStream = new java.io.ByteArrayOutputStream();
+        response.getBody().writeTo(outputStream);
+        String result = outputStream.toString(java.nio.charset.StandardCharsets.UTF_8);
+        assertTrue(result.contains("Error retrieving logs"));
+        assertTrue(result.contains("Log streaming error"));
+    }
+
+    @Test
+    void getLogs_ShouldHandleEmptyLogStream() throws Exception {
+        java.util.Iterator<container.v1.Container.GetContainerLogsResponse> mockIterator = Collections.emptyIterator();
+        when(containerService.getLogs(CONTAINER_ID, USER_ID, false)).thenReturn(mockIterator);
+
+        org.springframework.http.ResponseEntity<org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody> response =
+                containerRestController.getLogs(CONTAINER_ID, false);
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertNotNull(response.getBody());
+
+        java.io.ByteArrayOutputStream outputStream = new java.io.ByteArrayOutputStream();
+        response.getBody().writeTo(outputStream);
+        String result = outputStream.toString(java.nio.charset.StandardCharsets.UTF_8);
+        assertEquals("", result);
     }
 }

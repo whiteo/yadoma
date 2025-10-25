@@ -113,11 +113,52 @@ jacocoTestReport {
                 '**/image/v1/**',
                 '**/network/v1/**',
                 '**/system/v1/**',
-                '**/volume/v1/**'
+                '**/volume/v1/**',
+                '**/App.class'
             ])
         }))
     }
 }
+
+jacocoTestCoverageVerification {
+    violationRules {
+        rule {
+            element = 'BUNDLE'
+            limit {
+                counter = 'INSTRUCTION'
+                value = 'COVEREDRATIO'
+                minimum = 0.88
+            }
+        }
+        rule {
+            element = 'CLASS'
+            includes = ['dev.whiteo.yadoma.controller.*', 'dev.whiteo.yadoma.websocket.*']
+            limit {
+                counter = 'INSTRUCTION'
+                value = 'COVEREDRATIO'
+                minimum = 0.95
+            }
+        }
+    }
+    afterEvaluate {
+        classDirectories.setFrom(files(classDirectories.files.collect {
+            fileTree(dir: it, exclude: [
+                '**/build/generated/**',
+                '**/proto/**',
+                '**/*Grpc*',
+                '**/*Proto*',
+                '**/container/v1/**',
+                '**/image/v1/**',
+                '**/network/v1/**',
+                '**/system/v1/**',
+                '**/volume/v1/**',
+                '**/App.class'
+            ])
+        }))
+    }
+}
+
+check.dependsOn jacocoTestCoverageVerification
 
 task buildUI(type: Exec) {
     description = 'Build the React UI using npm'
