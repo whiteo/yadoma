@@ -59,7 +59,7 @@ class UserManagementIntegrationTest {
     void setUp() throws Exception {
         userRepository.deleteAll();
 
-        // Create and login a test user for authenticated requests
+        
         UserCreateRequest registerRequest = new UserCreateRequest(
                 "test@example.com",
                 "SecurePass123!"
@@ -111,7 +111,7 @@ class UserManagementIntegrationTest {
                         .content(objectMapper.writeValueAsString(updateRequest)))
                 .andExpect(status().isOk());
 
-        // Verify new password works
+        
         UserLoginRequest loginRequest = new UserLoginRequest("test@example.com", "NewSecurePass456!");
 
         mockMvc.perform(post("/api/v1/authenticate/login")

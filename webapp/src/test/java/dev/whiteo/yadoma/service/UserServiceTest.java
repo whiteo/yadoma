@@ -79,7 +79,7 @@ class UserServiceTest {
             passwordUtil.when(() -> PasswordUtil.matches("password", "hashedPassword")).thenReturn(true);
 
             when(repository.findByEmailIgnoreCase("test@example.com")).thenReturn(java.util.Optional.of(user));
-            when(repository.getOrThrow("userId")).thenReturn(user); // Add mock for loadUserByUsername
+            when(repository.getOrThrow("userId")).thenReturn(user); 
             when(tokenInteract.generateToken(any(UserDetails.class))).thenReturn("token");
 
             TokenResponse result = userService.getToken(loginRequest);

@@ -77,7 +77,7 @@ class AuthenticationIntegrationTest {
 
     @Test
     void shouldLoginWithValidCredentials() throws Exception {
-        // First register a user
+        
         UserCreateRequest registerRequest = new UserCreateRequest(
                 "login@example.com",
                 "SecurePass123!"
@@ -87,7 +87,7 @@ class AuthenticationIntegrationTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(registerRequest)));
 
-        // Then try to login
+        
         UserLoginRequest loginRequest = new UserLoginRequest("login@example.com", "SecurePass123!");
 
         MvcResult result = mockMvc.perform(post("/api/v1/authenticate/login")
@@ -106,7 +106,7 @@ class AuthenticationIntegrationTest {
 
     @Test
     void shouldRejectLoginWithInvalidPassword() throws Exception {
-        // First register a user
+        
         UserCreateRequest registerRequest = new UserCreateRequest(
                 "invalid@example.com",
                 "CorrectPass123!"
@@ -116,7 +116,7 @@ class AuthenticationIntegrationTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(registerRequest)));
 
-        // Try to login with wrong password
+        
         UserLoginRequest loginRequest = new UserLoginRequest("invalid@example.com", "WrongPassword");
 
         mockMvc.perform(post("/api/v1/authenticate/login")
@@ -142,7 +142,7 @@ class AuthenticationIntegrationTest {
                 "SecurePass123!"
         );
 
-        // First registration should succeed
+        
         mockMvc.perform(post("/api/v1/user/register")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request1)))
@@ -153,7 +153,7 @@ class AuthenticationIntegrationTest {
                 "DifferentPass456!"
         );
 
-        // Second registration with same email should fail
+        
         mockMvc.perform(post("/api/v1/user/register")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request2)))
@@ -162,7 +162,7 @@ class AuthenticationIntegrationTest {
 
     @Test
     void shouldValidateTokenAfterLogin() throws Exception {
-        // Register and login
+        
         UserCreateRequest registerRequest = new UserCreateRequest(
                 "token@example.com",
                 "SecurePass123!"
@@ -183,7 +183,7 @@ class AuthenticationIntegrationTest {
         String responseContent = loginResult.getResponse().getContentAsString();
         TokenResponse tokenResponse = objectMapper.readValue(responseContent, TokenResponse.class);
 
-        // Validate the token
+        
         mockMvc.perform(post("/api/v1/authenticate/validate")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"token\":\"" + tokenResponse.token() + "\"}"))

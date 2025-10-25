@@ -56,7 +56,7 @@ class SystemEndpointsIntegrationTest {
     void setUp() throws Exception {
         userRepository.deleteAll();
 
-        // Create and login a test user for authenticated requests
+        
         UserCreateRequest registerRequest = new UserCreateRequest(
                 "sys@example.com",
                 "SecurePass123!"
@@ -114,7 +114,7 @@ class SystemEndpointsIntegrationTest {
 
     @Test
     void shouldGetVersion() throws Exception {
-        // Version endpoint is typically public
+        
         mockMvc.perform(get("/api/v1/version"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.version").exists());
@@ -122,7 +122,7 @@ class SystemEndpointsIntegrationTest {
 
     @Test
     void shouldAccessActuatorHealth() throws Exception {
-        // Actuator health endpoint should be accessible
+        
         mockMvc.perform(get("/actuator/health"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").exists());
