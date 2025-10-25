@@ -54,18 +54,7 @@ jobs:
     runs-on: ubuntu-latest
     name: Test WebApp
 
-    services:
-      docker:
-        image: docker:dind
-        options: >-
-          --privileged
-          --dns 8.8.8.8
-        ports:
-          - 2375:2375
-
     env:
-      DOCKER_HOST: tcp://localhost:2375
-      DOCKER_TLS_VERIFY: 0
       GRADLE_OPTS: "-Dorg.gradle.daemon=false -Dorg.gradle.jvmargs='-Xmx2g'"
 
     steps:
@@ -101,16 +90,8 @@ jobs:
         working-directory: webapp
         run: ./gradlew generateProto --no-daemon
 
-      - name: Run integration tests
+      - name: Run tests
         working-directory: webapp
         run: |
-          docker info
-          ./gradlew clean test jacocoTestReport jacocoTestCoverageVerification --no-daemon --info
-
-      - name: Upload JaCoCo coverage to Codecov
-        if: always()
-        uses: codecov/codecov-action@v5
-        with:
-          files: webapp/build/reports/jacoco/test/jacocoTestReport.xml
-          token: ${{ secrets.CODECOV_TOKEN }}
-          fail_ci_if_error: false
+          docker ps
+          ./gradlew clean test jacocoTestReport jacocoTestCoverageVerification --no-daemon
