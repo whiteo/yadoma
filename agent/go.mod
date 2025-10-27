@@ -5,7 +5,7 @@ go 1.25.1
 require (
 	github.com/rs/zerolog v1.34.0
 	github.com/stretchr/testify v1.11.1
-	google.golang.org/grpc v1.75.1
+	google.golang.org/grpc v1.76.0
 )
 
 require (
