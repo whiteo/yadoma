@@ -14,7 +14,6 @@ import (
 	"syscall"
 
 	docker "github.com/whiteo/yadoma/internal/dockers"
-	grpcserver "github.com/whiteo/yadoma/internal/grpc"
 	"github.com/whiteo/yadoma/internal/services/container"
 	"github.com/whiteo/yadoma/internal/services/image"
 	"github.com/whiteo/yadoma/internal/services/network"
@@ -79,17 +78,6 @@ func main() {
 	systemService := system.NewSystemService(layer)
 	log.Info().Msg("All gRPC services initialized")
 
-	gRPC, err := startGRPCServer(*tcpPort, containerService, imageService, networkService, volumeService, systemService)
-	if err != nil {
-		log.Error().Err(err).Msg("failed to start gRPC server")
-		return
-	}
-	defer func() {
-		gRPC.GracefulStop()
-		log.Info().Msg("gRPC server stopped gracefully")
-	}()
-	log.Info().Msgf("gRPC server is now serving on port %s", *tcpPort)
-
 	stop := make(chan os.Signal, 1)
 	signal.Notify(stop, os.Interrupt, syscall.SIGTERM)
 	<-stop
@@ -103,37 +91,4 @@ func initializeConnectToDockerEngine(socket string) (*client.Client, error) {
 	}
 
 	return c, nil
-}
-
-func startGRPCServer(addr string,
-	containerService *container.Service,
-	imageService *image.Service,
-	networkService *network.Service,
-	volumeService *volume.Service,
-	systemService *system.Service,
-) (*grpc.Server, error) {
-	lst, err := net.Listen("tcp", addr)
-	if err != nil {
-		return nil, err
-	}
-	grpcServer := grpc.NewServer()
-
-	registerGrpcServers(grpcServer,
-		containerService,
-		imageService,
-		networkService,
-		volumeService,
-		systemService,
-	)
-
-	go func() {
-		if fErr := grpcServer.Serve(lst); fErr != nil {
-			log.Error().Err(fErr).Msg("failed to initialize GRPC Server")
-		}
-	}()
-	return grpcServer, nil
-}
-
-func registerGrpcServers(rpc *grpc.Server, services ...grpcserver.Registrator) {
-	grpcserver.RegisterAll(rpc, services...)
 }

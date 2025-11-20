@@ -26,10 +26,3 @@ Thumbs.db
 # Ignore Docker volumes
 /docker/data/
 /grafana-storage/
-
-/webapp/.gradle/
-/webapp/build/
-/webapp/out/
-
-/ui/node_modules/
-/ui/dist/

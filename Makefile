@@ -8,7 +8,7 @@ NODE_VERSION=18
 JAVA_VERSION=25
 
 # Docker image/version
-IMAGE_NAME ?= whiteo/yadoma-agent
+IMAGE_NAME ?= whiteo/yadoma
 # Prefer explicit version (CI should pass YADOMA_AGENT_VERSION). Fallback to git describe or v0.1.0
 VERSION ?= $(or $(YADOMA_AGENT_VERSION),$(shell git describe --tags --always --dirty 2>NUL),v0.1.0)
 
@@ -27,28 +27,10 @@ NC=\033[0m # No Color
 # DEPENDENCY MANAGEMENT
 # =============================================================================
 
-install-deps-agent: ## Install Go dependencies for agent
+install-deps: ## Install Go dependencies for agent
 	@echo "$(BLUE)📦 Installing Go dependencies for agent...$(NC)"
 	cd agent && go mod download && go mod verify
 	@echo "$(GREEN)✅ Go dependencies installed$(NC)"
-
-install-deps-webapp: ## Install Java dependencies for webapp (placeholder)
-	@echo "$(YELLOW)⚠️  Webapp (Java) dependencies - not implemented yet$(NC)"
-	# cd webapp && ./gradlew dependencies || cd webapp && mvn dependency:resolve
-
-install-deps-ui: ## Install Node.js dependencies for UI (placeholder)
-	@echo "$(YELLOW)⚠️  UI (TypeScript/React) dependencies - not implemented yet$(NC)"
-	# cd ui && npm install
-
-tools: ## Install dev tools (pinned versions)
-	@echo "$(BLUE)🔧 Installing dev tools (pinned)...$(NC)"
-	go install google.golang.org/protobuf/cmd/protoc-gen-go@$(PROTOC_GEN_GO_VERSION)
-	go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@$(PROTOC_GEN_GO_GRPC_VERSION)
-	@echo "$(GREEN)✅ Tools installed$(NC)"
-
-install-deps: install-deps-agent tools ## Install all dependencies
-		@echo "$(GREEN)✅ All dependencies installed$(NC)"
-
 # =============================================================================
 # TESTING
 # =============================================================================
@@ -62,15 +44,6 @@ coverage-agent: ## Run Go agent tests with coverage
 	@echo "$(BLUE)🧪 Running Go agent tests with coverage...$(NC)"
 	cd agent && go test -v -race -count=1 -coverprofile=coverage.txt ./...
 	@echo "$(GREEN)✅ Coverage report generated at agent/coverage.txt$(NC)"
-
-# =============================================================================
-# CODE GENERATION
-# =============================================================================
-
-generate: ## Generate protobuf files for Go agent
-	@echo "$(BLUE)🔧 Generating protobuf files...$(NC)"
-	go generate ./generate.go
-	@echo "$(GREEN)✅ Protobuf files generated$(NC)"
 
 # =============================================================================
 # BUILD
