@@ -1,4 +1,4 @@
-FROM gradle:9.2.0-jdk25 AS builder
+FROM gradle:9.2.1-jdk25 AS builder
 
 WORKDIR /app
 
